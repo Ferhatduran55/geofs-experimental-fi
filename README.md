@@ -1,7 +1,7 @@
-# What is this FlightAssistant for GeoFS?
+# Features
 It offers options where you can view detailed information about the flight and, in some cases, customize it.
 
-## Beginning
+## FAQ
 <details>
 <summary>How to use this plugin?</summary>
   
