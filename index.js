@@ -1,48 +1,390 @@
 // ==UserScript==
 // @name         FlightAssistant
 // @namespace    Ferhatduran55
-// @version      0.1.1
+// @version      0.2
 // @description  take control of it all!
 // @author       Ferhatduran55
 // @match        https://www.geo-fs.com/geofs.php?v=3.66
 // @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=geo-fs.com
-// @grant        GM_addElement
-// @grant        GM_addStyle
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_deleteValue
+// @grant        GM_listValues
+// @grant        unsafeWindow
 // ==/UserScript==
+/* global $:false, jQuery:false, toastr:false, geofs:false */
 
-(function($) {
-	'use strict';
-    	GM_addElement('script', {textContent: `!function(e){e(["jquery"],function(e){return function(){function t(e,t,n){return g({type:O.error,iconClass:m().iconClasses.error,message:e,optionsOverride:n,title:t})}function n(t,n){return t||(t=m()),v=e("#"+t.containerId),v.length?v:(n&&(v=d(t)),v)}function o(e,t,n){return g({type:O.info,iconClass:m().iconClasses.info,message:e,optionsOverride:n,title:t})}function s(e){C=e}function i(e,t,n){return g({type:O.success,iconClass:m().iconClasses.success,message:e,optionsOverride:n,title:t})}function a(e,t,n){return g({type:O.warning,iconClass:m().iconClasses.warning,message:e,optionsOverride:n,title:t})}function r(e,t){var o=m();v||n(o),u(e,o,t)||l(o)}function c(t){var o=m();return v||n(o),t&&0===e(":focus",t).length?void h(t):void(v.children().length&&v.remove())}function l(t){for(var n=v.children(),o=n.length-1;o>=0;o--)u(e(n[o]),t)}function u(t,n,o){var s=!(!o||!o.force)&&o.force;return!(!t||!s&&0!==e(":focus",t).length)&&(t[n.hideMethod]({duration:n.hideDuration,easing:n.hideEasing,complete:function(){h(t)}}),!0)}function d(t){return v=e("<div/>").attr("id",t.containerId).addClass(t.positionClass),v.appendTo(e(t.target)),v}function p(){return{tapToDismiss:!0,toastClass:"toast",containerId:"toast-container",debug:!1,showMethod:"fadeIn",showDuration:300,showEasing:"swing",onShown:void 0,hideMethod:"fadeOut",hideDuration:1e3,hideEasing:"swing",onHidden:void 0,closeMethod:!1,closeDuration:!1,closeEasing:!1,closeOnHover:!0,extendedTimeOut:1e3,iconClasses:{error:"toast-error",info:"toast-info",success:"toast-success",warning:"toast-warning"},iconClass:"toast-info",positionClass:"toast-top-right",timeOut:5e3,titleClass:"toast-title",messageClass:"toast-message",escapeHtml:!1,target:"body",closeHtml:'<button type="button">&times;</button>',closeClass:"toast-close-button",newestOnTop:!0,preventDuplicates:!1,progressBar:!1,progressClass:"toast-progress",rtl:!1}}function f(e){C&&C(e)}function g(t){function o(e){return null==e&&(e=""),e.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function s(){c(),u(),d(),p(),g(),C(),l(),i()}function i(){var e="";switch(t.iconClass){case"toast-success":case"toast-info":e="polite";break;default:e="assertive"}I.attr("aria-live",e)}function a(){E.closeOnHover&&I.hover(H,D),!E.onclick&&E.tapToDismiss&&I.click(b),E.closeButton&&j&&j.click(function(e){e.stopPropagation?e.stopPropagation():void 0!==e.cancelBubble&&e.cancelBubble!==!0&&(e.cancelBubble=!0),E.onCloseClick&&E.onCloseClick(e),b(!0)}),E.onclick&&I.click(function(e){E.onclick(e),b()})}function r(){I.hide(),I[E.showMethod]({duration:E.showDuration,easing:E.showEasing,complete:E.onShown}),E.timeOut>0&&(k=setTimeout(b,E.timeOut),F.maxHideTime=parseFloat(E.timeOut),F.hideEta=(new Date).getTime()+F.maxHideTime,E.progressBar&&(F.intervalId=setInterval(x,10)))}function c(){t.iconClass&&I.addClass(E.toastClass).addClass(y)}function l(){E.newestOnTop?v.prepend(I):v.append(I)}function u(){if(t.title){var e=t.title;E.escapeHtml&&(e=o(t.title)),M.append(e).addClass(E.titleClass),I.append(M)}}function d(){if(t.message){var e=t.message;E.escapeHtml&&(e=o(t.message)),B.append(e).addClass(E.messageClass),I.append(B)}}function p(){E.closeButton&&(j.addClass(E.closeClass).attr("role","button"),I.prepend(j))}function g(){E.progressBar&&(q.addClass(E.progressClass),I.prepend(q))}function C(){E.rtl&&I.addClass("rtl")}function O(e,t){if(e.preventDuplicates){if(t.message===w)return!0;w=t.message}return!1}function b(t){var n=t&&E.closeMethod!==!1?E.closeMethod:E.hideMethod,o=t&&E.closeDuration!==!1?E.closeDuration:E.hideDuration,s=t&&E.closeEasing!==!1?E.closeEasing:E.hideEasing;if(!e(":focus",I).length||t)return clearTimeout(F.intervalId),I[n]({duration:o,easing:s,complete:function(){h(I),clearTimeout(k),E.onHidden&&"hidden"!==P.state&&E.onHidden(),P.state="hidden",P.endTime=new Date,f(P)}})}function D(){(E.timeOut>0||E.extendedTimeOut>0)&&(k=setTimeout(b,E.extendedTimeOut),F.maxHideTime=parseFloat(E.extendedTimeOut),F.hideEta=(new Date).getTime()+F.maxHideTime)}function H(){clearTimeout(k),F.hideEta=0,I.stop(!0,!0)[E.showMethod]({duration:E.showDuration,easing:E.showEasing})}function x(){var e=(F.hideEta-(new Date).getTime())/F.maxHideTime*100;q.width(e+"%")}var E=m(),y=t.iconClass||E.iconClass;if("undefined"!=typeof t.optionsOverride&&(E=e.extend(E,t.optionsOverride),y=t.optionsOverride.iconClass||y),!O(E,t)){T++,v=n(E,!0);var k=null,I=e("<div/>"),M=e("<div/>"),B=e("<div/>"),q=e("<div/>"),j=e(E.closeHtml),F={intervalId:null,hideEta:null,maxHideTime:null},P={toastId:T,state:"visible",startTime:new Date,options:E,map:t};return s(),r(),a(),f(P),E.debug&&console&&console.log(P),I}}function m(){return e.extend({},p(),b.options)}function h(e){v||(v=n()),e.is(":visible")||(e.remove(),e=null,0===v.children().length&&(v.remove(),w=void 0))}var v,C,w,T=0,O={error:"error",info:"info",success:"success",warning:"warning"},b={clear:r,remove:c,error:t,getContainer:n,info:o,options:{},subscribe:s,success:i,version:"2.1.3",warning:a};return b}()})}("function"==typeof define&&define.amd?define:function(e,t){"undefined"!=typeof module&&module.exports?module.exports=t(require("jquery")):window.toastr=t(window.jQuery)});//# sourceMappingURL=toastr.js.map`});
-    	GM_addStyle('.toast-title{font-weight:700}.toast-message{-ms-word-wrap:break-word;word-wrap:break-word}.toast-message a,.toast-message label{color:#FFF}.toast-message a:hover{color:#CCC;text-decoration:none}.toast-close-button{position:relative;right:-.3em;top:-.3em;float:right;font-size:20px;font-weight:700;color:#FFF;-webkit-text-shadow:0 1px 0 #fff;text-shadow:0 1px 0 #fff;opacity:.8;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=80);filter:alpha(opacity=80);line-height:1}.toast-close-button:focus,.toast-close-button:hover{color:#000;text-decoration:none;cursor:pointer;opacity:.4;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=40);filter:alpha(opacity=40)}.rtl .toast-close-button{left:-.3em;float:left;right:.3em}button.toast-close-button{padding:0;cursor:pointer;background:0 0;border:0;-webkit-appearance:none}.toast-top-center{top:0;right:0;width:100%}.toast-bottom-center{bottom:0;right:0;width:100%}.toast-top-full-width{top:0;right:0;width:100%}.toast-bottom-full-width{bottom:0;right:0;width:100%}.toast-top-left{top:12px;left:12px}.toast-top-right{top:12px;right:12px}.toast-bottom-right{right:12px;bottom:12px}.toast-bottom-left{bottom:12px;left:12px}#toast-container{position:fixed;z-index:999999;pointer-events:none}#toast-container *{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box}#toast-container>div{position:relative;pointer-events:auto;overflow:hidden;margin:0 0 6px;padding:15px 15px 15px 50px;width:300px;-moz-border-radius:3px;-webkit-border-radius:3px;border-radius:3px;background-position:15px center;background-repeat:no-repeat;-moz-box-shadow:0 0 12px #999;-webkit-box-shadow:0 0 12px #999;box-shadow:0 0 12px #999;color:#FFF;opacity:.8;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=80);filter:alpha(opacity=80)}#toast-container>div.rtl{direction:rtl;padding:15px 50px 15px 15px;background-position:right 15px center}#toast-container>div:hover{-moz-box-shadow:0 0 12px #000;-webkit-box-shadow:0 0 12px #000;box-shadow:0 0 12px #000;opacity:1;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=100);filter:alpha(opacity=100);cursor:pointer}#toast-container>.toast-info{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGwSURBVEhLtZa9SgNBEMc9sUxxRcoUKSzSWIhXpFMhhYWFhaBg4yPYiWCXZxBLERsLRS3EQkEfwCKdjWJAwSKCgoKCcudv4O5YLrt7EzgXhiU3/4+b2ckmwVjJSpKkQ6wAi4gwhT+z3wRBcEz0yjSseUTrcRyfsHsXmD0AmbHOC9Ii8VImnuXBPglHpQ5wwSVM7sNnTG7Za4JwDdCjxyAiH3nyA2mtaTJufiDZ5dCaqlItILh1NHatfN5skvjx9Z38m69CgzuXmZgVrPIGE763Jx9qKsRozWYw6xOHdER+nn2KkO+Bb+UV5CBN6WC6QtBgbRVozrahAbmm6HtUsgtPC19tFdxXZYBOfkbmFJ1VaHA1VAHjd0pp70oTZzvR+EVrx2Ygfdsq6eu55BHYR8hlcki+n+kERUFG8BrA0BwjeAv2M8WLQBtcy+SD6fNsmnB3AlBLrgTtVW1c2QN4bVWLATaIS60J2Du5y1TiJgjSBvFVZgTmwCU+dAZFoPxGEEs8nyHC9Bwe2GvEJv2WXZb0vjdyFT4Cxk3e/kIqlOGoVLwwPevpYHT+00T+hWwXDf4AJAOUqWcDhbwAAAAASUVORK5CYII=)!important}#toast-container>.toast-error{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHOSURBVEhLrZa/SgNBEMZzh0WKCClSCKaIYOED+AAKeQQLG8HWztLCImBrYadgIdY+gIKNYkBFSwu7CAoqCgkkoGBI/E28PdbLZmeDLgzZzcx83/zZ2SSXC1j9fr+I1Hq93g2yxH4iwM1vkoBWAdxCmpzTxfkN2RcyZNaHFIkSo10+8kgxkXIURV5HGxTmFuc75B2RfQkpxHG8aAgaAFa0tAHqYFfQ7Iwe2yhODk8+J4C7yAoRTWI3w/4klGRgR4lO7Rpn9+gvMyWp+uxFh8+H+ARlgN1nJuJuQAYvNkEnwGFck18Er4q3egEc/oO+mhLdKgRyhdNFiacC0rlOCbhNVz4H9FnAYgDBvU3QIioZlJFLJtsoHYRDfiZoUyIxqCtRpVlANq0EU4dApjrtgezPFad5S19Wgjkc0hNVnuF4HjVA6C7QrSIbylB+oZe3aHgBsqlNqKYH48jXyJKMuAbiyVJ8KzaB3eRc0pg9VwQ4niFryI68qiOi3AbjwdsfnAtk0bCjTLJKr6mrD9g8iq/S/B81hguOMlQTnVyG40wAcjnmgsCNESDrjme7wfftP4P7SP4N3CJZdvzoNyGq2c/HWOXJGsvVg+RA/k2MC/wN6I2YA2Pt8GkAAAAASUVORK5CYII=)!important}#toast-container>.toast-success{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADsSURBVEhLY2AYBfQMgf///3P8+/evAIgvA/FsIF+BavYDDWMBGroaSMMBiE8VC7AZDrIFaMFnii3AZTjUgsUUWUDA8OdAH6iQbQEhw4HyGsPEcKBXBIC4ARhex4G4BsjmweU1soIFaGg/WtoFZRIZdEvIMhxkCCjXIVsATV6gFGACs4Rsw0EGgIIH3QJYJgHSARQZDrWAB+jawzgs+Q2UO49D7jnRSRGoEFRILcdmEMWGI0cm0JJ2QpYA1RDvcmzJEWhABhD/pqrL0S0CWuABKgnRki9lLseS7g2AlqwHWQSKH4oKLrILpRGhEQCw2LiRUIa4lwAAAABJRU5ErkJggg==)!important}#toast-container>.toast-warning{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGYSURBVEhL5ZSvTsNQFMbXZGICMYGYmJhAQIJAICYQPAACiSDB8AiICQQJT4CqQEwgJvYASAQCiZiYmJhAIBATCARJy+9rTsldd8sKu1M0+dLb057v6/lbq/2rK0mS/TRNj9cWNAKPYIJII7gIxCcQ51cvqID+GIEX8ASG4B1bK5gIZFeQfoJdEXOfgX4QAQg7kH2A65yQ87lyxb27sggkAzAuFhbbg1K2kgCkB1bVwyIR9m2L7PRPIhDUIXgGtyKw575yz3lTNs6X4JXnjV+LKM/m3MydnTbtOKIjtz6VhCBq4vSm3ncdrD2lk0VgUXSVKjVDJXJzijW1RQdsU7F77He8u68koNZTz8Oz5yGa6J3H3lZ0xYgXBK2QymlWWA+RWnYhskLBv2vmE+hBMCtbA7KX5drWyRT/2JsqZ2IvfB9Y4bWDNMFbJRFmC9E74SoS0CqulwjkC0+5bpcV1CZ8NMej4pjy0U+doDQsGyo1hzVJttIjhQ7GnBtRFN1UarUlH8F3xict+HY07rEzoUGPlWcjRFRr4/gChZgc3ZL2d8oAAAAASUVORK5CYII=)!important}#toast-container.toast-bottom-center>div,#toast-container.toast-top-center>div{width:300px;margin-left:auto;margin-right:auto}#toast-container.toast-bottom-full-width>div,#toast-container.toast-top-full-width>div{width:96%;margin-left:auto;margin-right:auto}.toast{background-color:#030303}.toast-success{background-color:#51A351}.toast-error{background-color:#BD362F}.toast-info{background-color:#2F96B4}.toast-warning{background-color:#F89406}.toast-progress{position:absolute;left:0;bottom:0;height:4px;background-color:#000;opacity:.4;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=40);filter:alpha(opacity=40)}@media all and (max-width:240px){#toast-container>div{padding:8px 8px 8px 50px;width:11em}#toast-container>div.rtl{padding:8px 50px 8px 8px}#toast-container .toast-close-button{right:-.2em;top:-.2em}#toast-container .rtl .toast-close-button{left:-.2em;right:.2em}}@media all and (min-width:241px) and (max-width:480px){#toast-container>div{padding:8px 8px 8px 50px;width:18em}#toast-container>div.rtl{padding:8px 50px 8px 8px}#toast-container .toast-close-button{right:-.2em;top:-.2em}#toast-container .rtl .toast-close-button{left:-.2em;right:.2em}}@media all and (min-width:481px) and (max-width:768px){#toast-container>div{padding:15px 15px 15px 50px;width:25em}#toast-container>div.rtl{padding:15px 50px 15px 15px}}');
-    	const disabledElements = [
-		'.geofs-adbanner.geofs-adsense-container',
-		'.geofs-creditContainer.geofs-notForMobile'
-	];
-
-	async function init(){
-        let flightAssistantContainer = $(`<div></div>`)
-        flightAssistantContainer.attr({
-            "data-noblur": true,
-            "data-onshow": "{geofs.initializePreferencesPanel()}",
-            "data-onhide": "{geofs.savePreferencesPanel()}"
-        })
-            .addClass("geofs-list geofs-toggle-panel geofs-assistant-list geofs-visible")
-            .html('');
-
-        $(document).find(".geofs-ui-left").eq(0).append(flightAssistantContainer);
-
-        let flightAssistantButton = $(`<button class="mdl-button mdl-js-button geofs-f-standard-ui" data-toggle-panel=".geofs-assistant-list" data-tooltip-classname="mdl-tooltip--top" id="assistantbutton" tabindex="0" data-upgraded=",MaterialButton" onclick="flightAssistant()" title="Flight Assistant">ASSISTANT</button>`)
-        $('body').append(flightAssistantButton)
-        let element = $("#assistantbutton")
-
-        if (geofs.version >= 3.6){
-            $(document).find(".geofs-ui-bottom").eq(0).contents().eq(4).before(element)
-        } else {
-            $(document).find(".geofs-ui-bottom").eq(0).contents().eq(3).before(element)
-        }
-
-        $.each(disabledElements, (i, e) => $(e).css("display","none"));
+class Plugin {
+    constructor() {
+        this.instances = []
     }
-    init();
-})(jQuery);
+
+    use(plugin) {
+        this.instances[plugin.constructor.name] = plugin
+    }
+
+    appendFilesToHead(arr = [], forceExt = false) {
+        for (let i = 0; i < arr.length; i++) {
+            let urlStr = arr[i]
+            let ext = forceExt ? forceExt : urlStr.slice(Math.max(0, urlStr.lastIndexOf(".")) + 1)
+            let el = null
+
+            switch (ext) {
+                case "js":
+                    el = $( "<script/>", {type: "text/javascript", src: urlStr})
+                    break;
+                case "css":
+                    el = $("<link>", {rel: "stylesheet", type: "text/css", href: urlStr})
+                    break;
+                default:
+                    el = $( "<script/>", {type: "text/javascript", src: urlStr})
+            }
+            $("head").eq(0).append(el)
+        }
+    }
+
+    disableElements(arr) {
+        arr.forEach((e) => $(e).css("display", "none"))
+    }
+}
+
+class Toastr {
+    constructor(options = null) {
+        this.options = {
+            "closeButton": false,
+            "debug": false,
+            "newestOnTop": false,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
+        this._load(options ?? this.options)
+    }
+
+    notify(type, content) {
+        toastr[type](content)
+    }
+
+    _load(options) {
+        toastr.options = options
+    }
+}
+
+class FlightAssistant {
+    constructor(plugin = null) {
+        this.plugins = plugin?.instances ?? {}
+        this.init()
+    }
+
+    init() {
+        this.generateFlightAssistantContainer()
+        this.generateFlightAssistantButton()
+
+        this._Toastr = this.plugins.Toastr
+        this.showNotification("success", "FlightAssistant Loaded")
+    }
+
+    showNotification(type, content) {
+        this._Toastr.notify(type, content)
+    }
+
+    flightAssistant() {
+        this.showNotification("info", "This plugin is under development")
+    }
+
+    generateFlightAssistantContainer() {
+        let c = $("<div/>", {
+            class: "geofs-list geofs-toggle-panel geofs-assistant-list",
+        }).data({
+            noblur: true,
+            onshow: "{geofs.initializePreferencesPanel()}",
+            onhide: "{geofs.savePreferencesPanel()}",
+        }).html('');
+        this.renderFlightAssistantContainer(c);
+    }
+
+    renderFlightAssistantContainer(gen) {
+        $(document).find(".geofs-ui-left").eq(0).append(gen);
+    }
+
+    generateFlightAssistantButton() {
+        let b = $("<button/>", {
+            class: "mdl-button mdl-js-button geofs-f-standard-ui",
+            id: "assistantbutton",
+            tabindex: 0,
+            text: "ASSISTANT",
+            onclick: "flightassistant.init.flightAssistant()"
+        }).data({
+            upgraded: ",MaterialButton",
+        }).attr({
+            "data-toggle-panel": ".geofs-assistant-list",
+            "data-tooltip-classname": "mdl-tooltip--top",
+        }).prop({
+            title: "Flight Assistant",
+        })
+        this.renderFlightAssistantButton(b);
+    }
+
+    renderFlightAssistantButton(gen) {
+        if (geofs.version >= 3.6) {
+            $(document).find(".geofs-ui-bottom").eq(0).contents().eq(4).before(gen);
+        } else {
+            $(document).find(".geofs-ui-bottom").eq(0).contents().eq(3).before(gen);
+        }
+    }
+}
+
+(() => {
+    'use strict';
+
+    let storage = {
+        version: geofs.version,
+        // compress: false,
+        options: {
+            prefix: ''
+        },
+
+        // Greasemonkey storage API
+        read: function (key, defaultValue) {
+            const raw = GM_getValue(this._prefix(key), defaultValue);
+            // let str = (this.compress) ? LZString.decompressFromUTF16(raw) : raw;
+            return this._parse(raw);
+        },
+        write: function (key, value) {
+            const raw = this._stringify(value);
+            // let str = (this.compress) ? LZString.compressToUTF16(raw) : raw;
+            return GM_setValue(this._prefix(key), raw);
+        },
+        delete: function (key) {
+            return GM_deleteValue(this._prefix(key));
+        },
+        readKeys: function () {
+            return GM_listValues();
+        },
+
+        // “Set” means “add if absent, replace if present.”
+        set: function (key, value) {
+            let savedVal = this.read(key);
+
+            if (typeof savedVal === 'undefined' || !savedVal) {
+                // add if absent
+                return this.add(key, value);
+            } else {
+                // replace if present
+                this.write(key, value);
+                return true;
+            }
+        },
+        // “Add” means “add if absent, do nothing if present” (if a uniquing collection).
+        add: function (key, value) {
+            let savedVal = this.read(key, false);
+
+            if (typeof savedVal === 'undefined' || !savedVal) {
+                this.write(key, value);
+                return true;
+            } else {
+                if (this._isArray(savedVal)) { // is array
+                    let index = savedVal.indexOf(value);
+
+                    if (index !== -1) {
+                        // do nothing if present
+                        return false;
+                    } else {
+                        // add if absent
+                        savedVal.push(value);
+                        this.write(key, savedVal);
+                        return true;
+                    }
+                } else if (this._isObject(savedVal)) { // is object
+                    // merge obj value on obj
+                    let result, objToMerge = value;
+
+                    result = Object.assign(savedVal, objToMerge);
+                    this.write(key, result);
+                    return false;
+                }
+                return false;
+            }
+        },
+        // “Replace” means “replace if present, do nothing if absent.”
+        replace: function (key, itemFind, itemReplacement) {
+            let savedVal = this.read(key, false);
+
+            if (typeof savedVal === 'undefined' || !savedVal) {
+                // do nothing if absent
+                return false;
+            } else {
+                if (this._isArray(savedVal)) { // is Array
+                    let index = savedVal.indexOf(itemFind);
+
+                    if (index !== -1) {
+                        // replace if present
+                        savedVal[index] = itemReplacement;
+                        this.write(key, savedVal);
+                        return true;
+                    } else {
+                        // do nothing if absent
+                        return false;
+                    }
+                } else if (this._isObject(savedVal)) {
+                    // is Object
+                    // replace property's value
+                    savedVal[itemFind] = itemReplacement;
+                    this.write(key, savedVal);
+                    return true;
+                }
+                return false;
+            }
+        },
+        // “Remove” means “remove if present, do nothing if absent.”
+        remove: function (key, value) {
+            if (typeof value === 'undefined') { // remove key
+                this.delete(key);
+                return true;
+            } else { // value present
+                let savedVal = this.read(key);
+
+                if (typeof savedVal === 'undefined' || !savedVal) {
+                    return true;
+                } else {
+                    if (this._isArray(savedVal)) { // is Array
+                        let index = savedVal.indexOf(value);
+
+                        if (index !== -1) {
+                            // remove if present
+                            savedVal.splice(index, 1);
+                            this.write(key, savedVal);
+                            return true;
+                        } else {
+                            // do nothing if absent
+                            return false;
+                        }
+                    } else if (this._isObject(savedVal)) { // is Object
+                        let property = value;
+
+                        delete savedVal[property];
+                        this.write(key, savedVal);
+                        return true;
+                    }
+                    return false;
+                }
+            }
+        },
+        get: function (key, defaultValue) {
+            return this.read(key, defaultValue);
+        },
+        getAll: function () {
+            const keys = this._listKeys();
+            let obj = {};
+
+            for (let i = 0, len = keys.length; i < len; i++) {
+                obj[keys[i]] = this.read(keys[i]);
+            }
+            return obj;
+        },
+        getKeys: function () {
+            return this._listKeys();
+        },
+        getPrefix: function () {
+            return this.options.prefix;
+        },
+        empty: function () {
+            const keys = this._listKeys();
+
+            for (let i = 0, len = keys.lenght; i < len; i++) {
+                this.delete(keys[i]);
+            }
+        },
+        has: function (key) {
+            return this.get(key) !== null;
+        },
+        forEach: function (callbackFunc) {
+            const allContent = this.getAll();
+
+            for (let prop in allContent) {
+                callbackFunc(prop, allContent[prop]);
+            }
+        },
+        _parse: function (value) {
+            if (this._isJson(value)) {
+                return JSON.parse(value);
+            }
+            return value;
+        },
+        _stringify: function (value) {
+            if (this._isJson(value)) {
+                return value;
+            }
+            return JSON.stringify(value);
+        },
+        _listKeys: function (usePrefix = false) {
+            const prefixed = this.readKeys();
+            let unprefixed = [];
+
+            if (usePrefix) {
+                return prefixed;
+            } else {
+                for (let i = 0, len = prefixed.length; i < len; i++) {
+                    unprefixed[i] = this._unprefix(prefixed[i]);
+                }
+                return unprefixed;
+            }
+        },
+        _prefix: function (key) {
+            return this.options.prefix + key;
+        },
+        _unprefix: function (key) {
+            return key.substring(this.options.prefix.length);
+        },
+        _isJson: function (item) {
+            try {
+                JSON.parse(item);
+            } catch (e) {
+                return false;
+            }
+            return true;
+        },
+        _isObject: function (a) {
+            return (!!a) && (a.constructor === Object);
+        },
+        _isArray: function (a) {
+            return (!!a) && (a.constructor === Array);
+        }
+    };
+
+    const files = [
+        "https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css"
+    ]
+
+    const disableElements = [
+        '.geofs-adbanner.geofs-adsense-container',
+        '.geofs-creditContainer.geofs-notForMobile',
+    ]
+
+    const plugin = new Plugin()
+    plugin.use(new Toastr())
+
+    plugin.appendFilesToHead(files)
+    plugin.instances.Toastr.notify("info", "External Files Imported")
+
+    plugin.disableElements(disableElements)
+    plugin.instances.Toastr.notify("info", "Some Elements Disabled")
+
+    const initialize = new FlightAssistant(plugin)
+    unsafeWindow.flightassistant = {
+        init: initialize,
+        storage: storage,
+        plugin: plugin
+    }
+})();
