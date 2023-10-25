@@ -6,7 +6,7 @@
 // @namespace           https://github.com/Ferhatduran55
 // @version             0.2.1
 // @license             MIT
-// @match               *://www.geo-fs.com/geofs.php?v=3.66
+// @match               https://www.geo-fs.com/geofs.php?v=3.66
 // @icon                https://www.google.com/s2/favicons?sz=48&domain=geo-fs.com
 // @icon64              https://www.google.com/s2/favicons?sz=64&domain=geo-fs.com
 // @require             https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
