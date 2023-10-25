@@ -1,151 +1,46 @@
 // ==UserScript==
-// @name         FlightAssistant
-// @namespace    Ferhatduran55
-// @version      0.2
-// @description  take control of it all!
-// @author       Ferhatduran55
-// @match        https://www.geo-fs.com/geofs.php?v=3.66
-// @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
-// @require      https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=geo-fs.com
-// @grant        GM_setValue
-// @grant        GM_getValue
-// @grant        GM_deleteValue
-// @grant        GM_listValues
-// @grant        unsafeWindow
+// @name                GeoFS-FlightAssistant
+// @description         Say hello to your flight assistant that enhances the experience!
+// @description:tr      Deneyimi zenginleştiren uçuş asistanınıza merhaba deyin!
+// @author              Ferhatduran55
+// @namespace           https://github.com/Ferhatduran55
+// @version             0.2.1
+// @license             MIT
+// @match               *://www.geo-fs.com/geofs.php?v=3.66
+// @icon                https://www.google.com/s2/favicons?sz=48&domain=geo-fs.com
+// @icon64              https://www.google.com/s2/favicons?sz=64&domain=geo-fs.com
+// @require             https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
+// @require             https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js
+// @require             https://raw.githubusercontent.com/Ferhatduran55/GeoFS-FlightAssistant/master/source/classes/FlightAssistant.js
+// @require             https://raw.githubusercontent.com/Ferhatduran55/GeoFS-FlightAssistant/master/source/classes/PluginManager.js
+// @require             https://raw.githubusercontent.com/Ferhatduran55/GeoFS-FlightAssistant/master/source/plugins/Toastr.js
+// @connect             raw.githubusercontent.com
+// @connect             greasyfork.org
+// @grant               GM_setValue
+// @grant               GM_getValue
+// @grant               GM_deleteValue
+// @grant               GM_listValues
+// @grant               unsafeWindow
+// @run-at              document-end
 // ==/UserScript==
-/* global $:false, jQuery:false, toastr:false, geofs:false */
 
-class Plugin {
-    constructor() {
-        this.instances = []
-    }
+// ==OpenUserJS==
+// @author              Ferhatduran55
+// @description         Say hello to your flight assistant that enhances the experience!
+// @description:tr      Deneyimi zenginleştiren uçuş asistanınıza merhaba deyin!
+// ==/OpenUserJS==
 
-    use(plugin) {
-        this.instances[plugin.constructor.name] = plugin
-    }
+// ==UserLibrary==
+// @name                FlightAssistant
+// @description         Say hello to your flight assistant that enhances the experience!
+// @description:tr      Deneyimi zenginleştiren uçuş asistanınıza merhaba deyin!
+// @version             0.2.1
+// @license             MIT
+// ==/UserLibrary==
 
-    appendFilesToHead(arr = [], forceExt = false) {
-        for (let i = 0; i < arr.length; i++) {
-            let urlStr = arr[i]
-            let ext = forceExt ? forceExt : urlStr.slice(Math.max(0, urlStr.lastIndexOf(".")) + 1)
-            let el = null
+/* global $:false, jQuery:false, toastr:false, geofs:false, PluginManager:false, Toastr:false, FlightAssistant:false */
 
-            switch (ext) {
-                case "js":
-                    el = $( "<script/>", {type: "text/javascript", src: urlStr})
-                    break;
-                case "css":
-                    el = $("<link>", {rel: "stylesheet", type: "text/css", href: urlStr})
-                    break;
-                default:
-                    el = $( "<script/>", {type: "text/javascript", src: urlStr})
-            }
-            $("head").eq(0).append(el)
-        }
-    }
-
-    disableElements(arr) {
-        arr.forEach((e) => $(e).css("display", "none"))
-    }
-}
-
-class Toastr {
-    constructor(options = null) {
-        this.options = {
-            "closeButton": false,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": false,
-            "onclick": null,
-            "showDuration": "300",
-            "hideDuration": "1000",
-            "timeOut": "5000",
-            "extendedTimeOut": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut"
-        }
-        this._load(options ?? this.options)
-    }
-
-    notify(type, content) {
-        toastr[type](content)
-    }
-
-    _load(options) {
-        toastr.options = options
-    }
-}
-
-class FlightAssistant {
-    constructor(plugin = null) {
-        this.plugins = plugin?.instances ?? {}
-        this.init()
-    }
-
-    init() {
-        this.generateFlightAssistantContainer()
-        this.generateFlightAssistantButton()
-
-        this._Toastr = this.plugins.Toastr
-        this.showNotification("success", "FlightAssistant Loaded")
-    }
-
-    showNotification(type, content) {
-        this._Toastr.notify(type, content)
-    }
-
-    flightAssistant() {
-        this.showNotification("info", "This plugin is under development")
-    }
-
-    generateFlightAssistantContainer() {
-        let c = $("<div/>", {
-            class: "geofs-list geofs-toggle-panel geofs-assistant-list",
-        }).data({
-            noblur: true,
-            onshow: "{geofs.initializePreferencesPanel()}",
-            onhide: "{geofs.savePreferencesPanel()}",
-        }).html('');
-        this.renderFlightAssistantContainer(c);
-    }
-
-    renderFlightAssistantContainer(gen) {
-        $(document).find(".geofs-ui-left").eq(0).append(gen);
-    }
-
-    generateFlightAssistantButton() {
-        let b = $("<button/>", {
-            class: "mdl-button mdl-js-button geofs-f-standard-ui",
-            id: "assistantbutton",
-            tabindex: 0,
-            text: "ASSISTANT",
-            onclick: "flightassistant.init.flightAssistant()"
-        }).data({
-            upgraded: ",MaterialButton",
-        }).attr({
-            "data-toggle-panel": ".geofs-assistant-list",
-            "data-tooltip-classname": "mdl-tooltip--top",
-        }).prop({
-            title: "Flight Assistant",
-        })
-        this.renderFlightAssistantButton(b);
-    }
-
-    renderFlightAssistantButton(gen) {
-        if (geofs.version >= 3.6) {
-            $(document).find(".geofs-ui-bottom").eq(0).contents().eq(4).before(gen);
-        } else {
-            $(document).find(".geofs-ui-bottom").eq(0).contents().eq(3).before(gen);
-        }
-    }
-}
-
-(() => {
+(async () => {
     'use strict';
 
     let storage = {
@@ -372,7 +267,7 @@ class FlightAssistant {
         '.geofs-creditContainer.geofs-notForMobile',
     ]
 
-    const plugin = new Plugin()
+    const plugin = new PluginManager()
     plugin.use(new Toastr())
 
     plugin.appendFilesToHead(files)

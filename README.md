@@ -10,7 +10,7 @@ It offers options where you can view detailed information about the flight and, 
 > You can install here: https://www.tampermonkey.net
 
 > #### Copy Script
-> After installing tampermonkey, create a new user script on tampermonkey, [copy the script](https://github.com/Ferhatduran55/geofs-flightassistant/blob/master/index.js) and paste it into the new user script.
+> After installing tampermonkey, create a new user script on tampermonkey, [copy the script](https://github.com/Ferhatduran55/geofs-flightassistant/blob/master/user.script.js) and paste it into the new user script.
 ---
 </details>
 

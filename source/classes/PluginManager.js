@@ -1,4 +1,4 @@
-class Plugin {
+class PluginManager {
     constructor() {
         this.instances = []
     }
