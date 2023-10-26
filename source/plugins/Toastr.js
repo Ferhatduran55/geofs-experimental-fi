@@ -20,11 +20,17 @@ class Toastr {
         this._load(options ?? this.options)
     }
 
-    notify(type, content) {
+    notify(type, content, options = null) {
+        if (options) this._load(options)
         toastr[type](content)
+        this._unload()
     }
 
     _load(options) {
-        toastr.options = options
+        $.each(options, (key, value) => toastr.options[key] = value)
+    }
+
+    _unload() {
+        toastr.options = this.options
     }
 }

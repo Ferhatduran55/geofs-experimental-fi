@@ -4,7 +4,7 @@
 // @description:tr      Deneyimi zenginleştiren uçuş asistanınıza merhaba deyin!
 // @author              Ferhatduran55
 // @namespace           https://github.com/Ferhatduran55
-// @version             0.2.1
+// @version             0.2.2
 // @license             MIT
 // @match               https://www.geo-fs.com/geofs.php?v=3.66
 // @icon                https://www.google.com/s2/favicons?sz=48&domain=geo-fs.com
@@ -34,7 +34,7 @@
 // @name                FlightAssistant
 // @description         Say hello to your flight assistant that enhances the experience!
 // @description:tr      Deneyimi zenginleştiren uçuş asistanınıza merhaba deyin!
-// @version             0.2.1
+// @version             0.2.2
 // @license             MIT
 // ==/UserLibrary==
 
@@ -276,10 +276,13 @@
     plugin.disableElements(disableElements)
     plugin.instances.Toastr.notify("info", "Some Elements Disabled")
 
-    const initialize = new FlightAssistant(plugin)
+    const assistant = new FlightAssistant(plugin)
     unsafeWindow.flightassistant = {
-        init: initialize,
+        init: assistant,
         storage: storage,
         plugin: plugin
     }
+    unsafeWindow.executeOnEventDone('geofsInitialized', function() {
+        assistant.init()
+    });
 })();
