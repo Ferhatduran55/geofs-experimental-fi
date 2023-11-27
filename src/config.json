@@ -1,0 +1,228 @@
+{
+  "options": {
+    "terser": {
+      "config": {
+        "compress": {
+          "dead_code": true,
+          "drop_console": false,
+          "drop_debugger": false,
+          "keep_classnames": true,
+          "keep_fargs": true,
+          "keep_fnames": true,
+          "keep_infinity": true
+        },
+        "mangle": {
+          "eval": false,
+          "keep_classnames": true,
+          "keep_fnames": true,
+          "toplevel": false,
+          "safari10": false
+        },
+        "module": false,
+        "sourceMap": false,
+        "output": {
+          "comments": true
+        }
+      },
+      "output": {
+        "status": false,
+        "save_path": "dist",
+        "replace": false,
+        "map": false,
+        "sources": [
+          "src/classes/FlightAssistant",
+          "src/classes/PluginManager",
+          "src/plugins/Storage",
+          "src/plugins/Toastr",
+          {
+            "src": "user.script",
+            "replace": {
+              "use": [
+                "name",
+                "description",
+                "license",
+                "plugin-prefix",
+                "author",
+                "match",
+                "favicons",
+                "version",
+                "domain",
+                "geo-fs-version",
+                "namespace",
+                "jquery.min:3.7.1",
+                "toastr.min.js:2.1.4",
+                "toastr.min.css:2.1.4"
+              ],
+              "from": [
+                "{@path}/{@branch}/(.*)\\.js.map(?=\\s|$)",
+                "{@path}/{@branch}/(.*)\\.js(?=\\s|$)",
+                "{@save-path}/(.*?)\\.js\\.map(?=\\s|$)"
+              ],
+              "to": [
+                "@var:path;/@var:branch;/@var:save-path;/$1.min.js.map",
+                "@var:path;/@var:branch;/@var:save-path;/$1.min.js",
+                "@var:save-path;/$1.min.js.map"
+              ]
+            }
+          },
+          {
+            "src": "local.user.script",
+            "replace": {
+              "use": [
+                "name",
+                "description",
+                "license",
+                "plugin-prefix",
+                "author",
+                "match",
+                "favicons",
+                "local-version",
+                "domain",
+                "geo-fs-version",
+                "namespace",
+                "jquery.min:3.7.1",
+                "toastr.min.js:2.1.4",
+                "toastr.min.css:2.1.4"
+              ],
+              "from": [
+                "{@local-path}/(.*)\\.js.map(?=\\s|$)",
+                "{@local-path}/(.*)\\.js(?=\\s|$)",
+                "{@save-path}/(.*?)\\.js\\.map(?=\\s|$)"
+              ],
+              "to": [
+                "@var:local-path;/@var:save-path;/$1.min.js.map",
+                "@var:local-path;/@var:save-path;/$1.min.js",
+                "@var:save-path;/$1.min.js.map"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "replace-in-file": {
+      "countMatches": true,
+      "references": [
+        {
+          "use": "plugin-prefix",
+          "from": "{@plugin-prefix}",
+          "to": "@var:plugin-prefix;"
+        },
+        {
+          "use": "domain",
+          "from": "{@domain}",
+          "to": "@var:domain;"
+        },
+        {
+          "use": "geo-fs-version",
+          "from": "{@geo-fs-version}",
+          "to": "@var:geo-fs-version;"
+        },
+        {
+          "use": "license",
+          "from": "{@license}",
+          "to": "@var:license;"
+        },
+        {
+          "use": "namespace",
+          "from": "{@namespace}",
+          "to": "@var:namespace;"
+        },
+        {
+          "use": "author",
+          "from": "{@author}",
+          "to": "@var:author;"
+        },
+        {
+          "use": "match",
+          "from": "{@match}",
+          "to": "@var:match;"
+        },
+        {
+          "use": "favicons",
+          "from": "{@favicons}",
+          "to": "@var:favicons;"
+        },
+        {
+          "use": "version",
+          "from": "{@version}",
+          "to": "@var:version;"
+        },
+        {
+          "use": "local-version",
+          "from": "{@local-version}",
+          "to": "@var:local-version;"
+        },
+        {
+          "use": "jquery.min:3.7.1",
+          "from": "{@jquery.min:3.7.1}",
+          "to": "@var:jquery.min:3.7.1;"
+        },
+        {
+          "use": "toastr.min.js:2.1.4",
+          "from": "{@toastr.min.js:2.1.4}",
+          "to": "@var:toastr.min.js:2.1.4;"
+        },
+        {
+          "use": "toastr.min.css:2.1.4",
+          "from": "{@toastr.min.css:2.1.4}",
+          "to": "@var:toastr.min.css:2.1.4;"
+        },
+        {
+          "use": "path",
+          "from": "{@path}",
+          "to": "@var:path;"
+        },
+        {
+          "use": "local-path",
+          "from": "{@local-path}",
+          "to": "@var:local-path;"
+        },
+        {
+          "use": "save-path",
+          "from": "{@save-path}",
+          "to": "@var:save-path;"
+        },
+        {
+          "use": "branch",
+          "from": "{@branch}",
+          "to": "@var:branch;"
+        },
+        {
+          "group": true,
+          "use": "name",
+          "from": "{@(name):([a-z]{2})}",
+          "to": "@var:$1:$2;"
+        },
+        {
+          "group": true,
+          "use": "description",
+          "from": "{@(description):([a-z]{2})}",
+          "to": "@var:$1:$2;"
+        }
+      ],
+      "variables": {
+        "path": "https://raw.githubusercontent.com/Ferhatduran55/GeoFS-FlightAssistant",
+        "local-path": "http://localhost/GeoFS-FlightAssistant",
+        "save-path": "dist",
+        "branch": "master",
+        "license": "MIT",
+        "version": "0.2.3",
+        "local-version": "0.2.3-dev",
+        "author": "Ferhatduran55",
+        "namespace": "https://github.com/Ferhatduran55",
+        "favicons": "https://www.google.com/s2/favicons",
+        "plugin-prefix": "__geofs_flight_assistant__-",
+        "match": "https://www.geo-fs.com/geofs.php?",
+        "domain": "geo-fs.com",
+        "geo-fs-version": "v=3.69",
+        "jquery.min:3.7.1": "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js",
+        "toastr.min.js:2.1.4": "https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js",
+        "toastr.min.css:2.1.4": "https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css",
+        "name:en": "GeoFS-FlightAssistant",
+        "name:tr": "GeoFS-UçuşAsistanı",
+        "description:en": "Say hello to your flight assistant that enhances the experience!",
+        "description:tr": "Deneyimi zenginleştiren uçuş asistanınıza merhaba deyin!"
+      }
+    }
+  }
+}

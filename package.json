@@ -1,0 +1,28 @@
+{
+  "dependencies": {
+    "pnpm": "^8.11.0",
+    "replace-in-file": "^7.0.2",
+    "terser": "^5.24.0"
+  },
+  "name": "@ferhatduran55/geofs-flightassistant",
+  "description": "Assistant for GeoFS Pilots. It uses Tampermonkey to run.",
+  "version": "0.2.3",
+  "main": "user.script.js",
+  "scripts": {
+    "tools-terser": "node ./src/tools/terser.js --output --replace --map"
+  },
+  "exports": {
+    "@": "./src",
+    "@tools": "./src/tools"
+  },
+  "keywords": [
+    "geo-fs",
+    "geo-fs-flight-assistant",
+    "geo-fs-flight-assistant-plugin",
+    "tampermonkey",
+    "userscript",
+    "userscripts"
+  ],
+  "author": "Ferhatduran55",
+  "license": "MIT"
+}
