@@ -29,8 +29,8 @@
 // @grant               GM_listValues
 // @grant               unsafeWindow
 // @run-at              document-end
-// @updateURL           https://raw.githubusercontent.com/Ferhatduran55/GeoFS-FlightAssistant/master/dist/user.meta.js
 // @downloadURL         https://raw.githubusercontent.com/Ferhatduran55/GeoFS-FlightAssistant/master/dist/user.script.min.js
+// @updateURL           https://raw.githubusercontent.com/Ferhatduran55/GeoFS-FlightAssistant/master/dist/user.meta.js
 // ==/UserScript==
 // ==OpenUserJS==
 // @author              Ferhatduran55
@@ -50,6 +50,3 @@
 // @version             0.2.4
 // @license             MIT
 // ==/UserLibrary==
-/* global $:false, jQuery:false, toastr:false, geofs:false, PluginManager:false, PStorage:false, Toastr:false, FlightAssistant:false */
-(async()=>{"use strict";const n=new PluginManager;n.use(new PStorage("0.2.4",{prefix:"__geofs_flight_assistant__-"})),n.use(new Toastr),n.appendFilesToHead(["https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css"]),n.instances.Toastr.notify("info","External Files Imported");const e=new FlightAssistant(n);let s=n.instances.PStorage;unsafeWindow.flightAssistant={init:e,storage:s,plugin:n},unsafeWindow.executeOnEventDone("geofsInitialized",(function(){e.init()}))})();
-//# sourceMappingURL=dist//user.script.min.js.map

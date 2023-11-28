@@ -22,10 +22,10 @@ argv.forEach((arg) => {
   }
 });
 
-function sourceMap(file) {
+function createSourceMap(file) {
   return {
-    filename: `${file}.min.js`,
-    url: `${file}.min.js.map`,
+    filename: file,
+    url: `${file}.map`,
   };
 }
 
@@ -37,31 +37,49 @@ function getPath(file) {
   return file.split("/").slice(0, -1).join("/");
 }
 
+function getFileName(file) {
+  return file.split("/").pop().split(".").slice(0, -1).join(".");
+}
+
+function getFileExtension(file) {
+  return file.split(".").pop();
+}
+
 async function minifyFile(source, mapping = false) {
-  let reduced = false,
-    changed = false,
-    file = source.src ?? source;
+  let isReduced = false;
+  let file = source.src ?? source;
+
   try {
-    const code = fs.readFileSync(`${file}.js`, "utf8");
-    config.sourceMap = mapping ? sourceMap(savePath(file)) : false;
+    const directory = getPath(file);
+    const fileName = getFileName(file);
+    const ext = getFileExtension(file);
+
+    const outputPath =
+      source.min === false && source.min !== undefined
+        ? savePath(`${directory}/${fileName}.${ext}`).replace(/^\//, "")
+        : savePath(`${directory}/${fileName}.min.${ext}`).replace(/^\//, "");
+    const code = await fs.promises.readFile(file, "utf8");
+    config.sourceMap =
+      mapping && source.map !== false ? createSourceMap(outputPath) : false;
     const minified = await minify(code, config);
-    const outputPath = getPath(savePath(file));
-    if (!fs.existsSync(outputPath)) {
-      fs.mkdirSync(outputPath, { recursive: true });
+
+    await createDirectoryIfNotExists(savePath(directory));
+    await writeToFile(outputPath, minified.code);
+
+    if (mapping && source.map !== false) {
+      await writeToFile(`${outputPath}.map`, minified.map);
     }
-    fs.writeFileSync(`${savePath(file)}.min.js`, minified.code);
-    if (mapping) {
-      fs.writeFileSync(`${savePath(file)}.min.js.map`, minified.map);
-    }
-    reduced = true;
+
+    isReduced = true;
+    file = outputPath;
   } catch (error) {
     const { message, filename, line, col, pos } = error;
     console.log(`Error: ${message} at ${filename}:${line}:${col}:${pos}`);
-    reduced = false;
+    isReduced = false;
   }
 
   if (
-    reduced &&
+    isReduced &&
     output.replace &&
     source.replace &&
     source.replace.from &&
@@ -69,30 +87,28 @@ async function minifyFile(source, mapping = false) {
   ) {
     const replace = source.replace;
     const request = replacer({
-      files: `${savePath(file)}.min.js`,
+      files: file,
       from: replace.from,
       to: replace.to,
       use: replace.use ?? [],
     });
-    changed = (await request).response ?? false;
+    const changed = (await request).response ?? false;
     if (changed) {
       console.log(
-        `${changed[0].numMatches} matches found, changed ${
-          changed[0].numReplacements
-        } times, Replaced ${changed[1].from} with ${
-          changed[1].to
-        } in ${savePath(file)}.min.js`
+        `${changed[0].numMatches} matches found, changed ${changed[0].numReplacements} times, Replaced ${changed[1].from} with ${changed[1].to} in ${file}.`
       );
     }
   }
+}
 
-  let res = {
-    source: file,
-    reduced: reduced,
-    mapped: mapping,
-    changed: changed,
-  };
-  return res;
+async function createDirectoryIfNotExists(directoryPath) {
+  if (!fs.existsSync(directoryPath)) {
+    await fs.promises.mkdir(directoryPath, { recursive: true });
+  }
+}
+
+async function writeToFile(filePath, content) {
+  await fs.promises.writeFile(filePath, content);
 }
 
 async function minifyAll(sources, mapping = false) {

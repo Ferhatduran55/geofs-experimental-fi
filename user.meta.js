@@ -29,8 +29,8 @@
 // @grant               GM_listValues
 // @grant               unsafeWindow
 // @run-at              document-end
-// @updateURL           {@update-url}
 // @downloadURL         {@download-url}
+// @updateURL           {@update-url}
 // ==/UserScript==
 
 // ==OpenUserJS==
@@ -52,29 +52,3 @@
 // @version             {@version}
 // @license             {@license}
 // ==/UserLibrary==
-
-/* global $:false, jQuery:false, toastr:false, geofs:false, PluginManager:false, PStorage:false, Toastr:false, FlightAssistant:false */
-
-(async () => {
-  "use strict";
-
-  const files = ["{@toastr.min.css:2.1.4}"];
-
-  const plugin = new PluginManager();
-  plugin.use(new PStorage("{@version}", { prefix: "{@plugin-prefix}" }));
-  plugin.use(new Toastr);
-
-  plugin.appendFilesToHead(files);
-  plugin.instances.Toastr.notify("info", "External Files Imported");
-
-  const assistant = new FlightAssistant(plugin);
-  let storage = plugin.instances.PStorage;
-  unsafeWindow.flightAssistant = {
-    init: assistant,
-    storage: storage,
-    plugin: plugin,
-  };
-  unsafeWindow.executeOnEventDone("geofsInitialized", function () {
-    assistant.init();
-  });
-})();

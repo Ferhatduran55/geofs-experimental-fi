@@ -6,7 +6,7 @@
   },
   "name": "@ferhatduran55/geofs-flightassistant",
   "description": "Assistant for GeoFS Pilots. It uses Tampermonkey to run.",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "main": "user.script.js",
   "scripts": {
     "tools-terser": "node ./src/tools/terser.js --output --replace --map"
