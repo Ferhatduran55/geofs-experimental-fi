@@ -5,7 +5,7 @@
 // @description:tr      Deneyimi zenginleştiren uçuş asistanınıza merhaba deyin!
 // @author              Ferhatduran55
 // @namespace           https://github.com/Ferhatduran55
-// @version             0.2.5
+// @version             0.2.6
 // @license             MIT
 // @match               https://www.geo-fs.com/geofs.php?v=3.7
 // @icon                https://www.google.com/s2/favicons?sz=48&domain=geo-fs.com
@@ -39,7 +39,7 @@
 // @description         Say hello to your flight assistant that enhances the experience!
 // @description:tr      Deneyimi zenginleştiren uçuş asistanınıza merhaba deyin!
 // @namespace           https://github.com/Ferhatduran55
-// @version             0.2.5
+// @version             0.2.6
 // @license             MIT
 // ==/OpenUserJS==
 // ==UserLibrary==
@@ -47,6 +47,6 @@
 // @name:tr             GeoFS-UçuşAsistanı
 // @description         Say hello to your flight assistant that enhances the experience!
 // @description:tr      Deneyimi zenginleştiren uçuş asistanınıza merhaba deyin!
-// @version             0.2.5
+// @version             0.2.6
 // @license             MIT
 // ==/UserLibrary==

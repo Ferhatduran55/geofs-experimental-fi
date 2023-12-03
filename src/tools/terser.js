@@ -30,7 +30,7 @@ function createSourceMap(file) {
 }
 
 function savePath(file) {
-  return output.status ? `${output.save_path}/${file}` : `${file}`;
+  return output.status ? [output.save_path, file].join("/") : file;
 }
 
 function getPath(file) {
@@ -54,10 +54,12 @@ async function minifyFile(source, mapping = false) {
     const fileName = getFileName(file);
     const ext = getFileExtension(file);
 
+    const targetPath = (savePath(directory) + "/").replace(/(\/\/)/g, "/");
+    console.log(targetPath);
     const outputPath =
       source.min === false && source.min !== undefined
-        ? savePath(`${directory}/${fileName}.${ext}`).replace(/^\//, "")
-        : savePath(`${directory}/${fileName}.min.${ext}`).replace(/^\//, "");
+        ? `${targetPath}${fileName}.${ext}`.replace(/^\//, "")
+        : `${targetPath}${fileName}.min.${ext}`.replace(/^\//, "");
     const code = await fs.promises.readFile(file, "utf8");
     config.sourceMap =
       mapping && source.map !== false ? createSourceMap(outputPath) : false;
