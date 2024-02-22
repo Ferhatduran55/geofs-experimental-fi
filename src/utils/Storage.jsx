@@ -1,40 +1,42 @@
-class PStorage {
-  constructor(version, options = { prefix: "" }) {
+export default Storage = {
+  version: 0,
+  options: { prefix: "" },
+  config(version, options = { prefix: "" }) {
     this.version = version;
     this.options = options;
-  }
+  },
   read(key, defaultValue) {
-    const raw = GM_getValue(this._prefix(key), defaultValue);
+    const raw = GM.getValue(this._prefix(key), defaultValue);
     return this._parse(raw);
-  }
+  },
   write(key, value) {
     const raw = this._stringify(value);
-    return GM_setValue(this._prefix(key), raw);
-  }
+    return GM.setValue(this._prefix(key), raw);
+  },
   delete(key) {
-    return GM_deleteValue(this._prefix(key));
-  }
+    return GM.deleteValue(this._prefix(key));
+  },
   readKeys() {
-    return GM_listValues();
-  }
+    return GM.listValues();
+  },
   set(key, value) {
     let savedVal = this.read(key);
 
-    if (typeof savedVal === "undefined" || !savedVal) {
+    if (this._isUndefined(savedVal) || !savedVal) {
       return this.add(key, value);
     } else {
       this.write(key, value);
       return true;
     }
-  }
+  },
   add(key, value) {
     let savedVal = this.read(key, false);
 
-    if (typeof savedVal === "undefined" || !savedVal) {
+    if (this._isUndefined(savedVal) || !savedVal) {
       this.write(key, value);
       return true;
     } else {
-      if (this._isArray(savedVal)) {
+      if (this._is(Array, savedVal)) {
         let index = savedVal.indexOf(value);
 
         if (index !== -1) {
@@ -44,7 +46,7 @@ class PStorage {
           this.write(key, savedVal);
           return true;
         }
-      } else if (this._isObject(savedVal)) {
+      } else if (this._is(Object, savedVal)) {
         let result,
           objToMerge = value;
 
@@ -54,14 +56,14 @@ class PStorage {
       }
       return false;
     }
-  }
+  },
   replace(key, itemFind, itemReplacement) {
     let savedVal = this.read(key, false);
 
-    if (typeof savedVal === "undefined" || !savedVal) {
+    if (this._isUndefined(savedVal) || !savedVal) {
       return false;
     } else {
-      if (this._isArray(savedVal)) {
+      if (this._is(Array, savedVal)) {
         let index = savedVal.indexOf(itemFind);
 
         if (index !== -1) {
@@ -71,25 +73,25 @@ class PStorage {
         } else {
           return false;
         }
-      } else if (this._isObject(savedVal)) {
+      } else if (this._is(Object, savedVal)) {
         savedVal[itemFind] = itemReplacement;
         this.write(key, savedVal);
         return true;
       }
       return false;
     }
-  }
+  },
   remove(key, value) {
-    if (typeof value === "undefined") {
+    if (this._isUndefined(value)) {
       this.delete(key);
       return true;
     } else {
       let savedVal = this.read(key);
 
-      if (typeof savedVal === "undefined" || !savedVal) {
+      if (this._isUndefined(savedVal) || !savedVal) {
         return true;
       } else {
-        if (this._isArray(savedVal)) {
+        if (this._is(Array, savedVal)) {
           let index = savedVal.indexOf(value);
 
           if (index !== -1) {
@@ -99,7 +101,7 @@ class PStorage {
           } else {
             return false;
           }
-        } else if (this._isObject(savedVal)) {
+        } else if (this._is(Object, savedVal)) {
           let property = value;
 
           delete savedVal[property];
@@ -109,10 +111,10 @@ class PStorage {
         return false;
       }
     }
-  }
+  },
   get(key, defaultValue) {
     return this.read(key, defaultValue);
-  }
+  },
   getAll() {
     const keys = this._listKeys();
     let obj = {};
@@ -121,43 +123,43 @@ class PStorage {
       obj[keys[i]] = this.read(keys[i]);
     }
     return obj;
-  }
+  },
   getKeys() {
     return this._listKeys();
-  }
+  },
   getPrefix() {
     return this.options.prefix;
-  }
+  },
   empty() {
     const keys = this._listKeys();
 
     for (let i = 0, len = keys.lenght; i < len; i++) {
       this.delete(keys[i]);
     }
-  }
+  },
   has(key) {
     return this.get(key) !== null;
-  }
+  },
   forEach(callbackFunc) {
     const allContent = this.getAll();
 
     for (let prop in allContent) {
       callbackFunc(prop, allContent[prop]);
     }
-  }
+  },
   _parse(value) {
     if (this._isJson(value)) {
       return JSON.parse(value);
     }
     return value;
-  }
+  },
   _stringify(value) {
     if (this._isJson(value)) {
       return value;
     }
     return JSON.stringify(value);
-  }
-  _listKeys(usePrefix = false) {
+  },
+  Keys(usePrefix = false) {
     const prefixed = this.readKeys();
     let unprefixed = [];
 
@@ -169,13 +171,13 @@ class PStorage {
       }
       return unprefixed;
     }
-  }
+  },
   _prefix(key) {
     return this.options.prefix + key;
-  }
+  },
   _unprefix(key) {
     return key.substring(this.options.prefix.length);
-  }
+  },
   _isJson(item) {
     try {
       JSON.parse(item);
@@ -183,11 +185,14 @@ class PStorage {
       return false;
     }
     return true;
-  }
-  _isObject(a) {
-    return !!a && a.constructor === Object;
-  }
-  _isArray(a) {
-    return !!a && a.constructor === Array;
-  }
-}
+  },
+  _isUndefined(a = undefined) {
+    return a === undefined;
+  },
+  _isNull(a = null) {
+    return a === null;
+  },
+  _is(object, type) {
+    return !!object && object.constructor === type;
+  },
+};

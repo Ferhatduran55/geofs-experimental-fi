@@ -1,20 +1,9 @@
 {
-  "dependencies": {
-    "pnpm": "^8.11.0",
-    "replace-in-file": "^7.0.2",
-    "terser": "^5.24.0"
-  },
   "name": "@ferhatduran55/geofs-flightassistant",
-  "description": "Assistant for GeoFS Pilots. It uses Tampermonkey to run.",
-  "version": "0.2.4",
+  "description": "Assistant for GeoFS Pilots.",
+  "version": "0.5.2",
   "main": "user.script.js",
-  "scripts": {
-    "tools-terser": "node ./src/tools/terser.js --output --replace --map"
-  },
-  "exports": {
-    "@": "./src",
-    "@tools": "./src/tools"
-  },
+  "author": "Ferhatduran55",
   "keywords": [
     "geo-fs",
     "geo-fs-flight-assistant",
@@ -23,6 +12,59 @@
     "userscript",
     "userscripts"
   ],
-  "author": "Ferhatduran55",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "serve": "vite preview",
+    "build": "vite build && userscript-builder --mode dev",
+    "release:bugfix": "vite build && userscript-builder --mode bugfix",
+    "release:minor": "vite build && userscript-builder --mode minor",
+    "release:major": "vite build && userscript-builder --mode major"
+  },
+  "userscript": {
+    "entry": "./dist/index.js",
+    "dev": "./dist",
+    "release": "./release",
+    "fileName": "index",
+    "meta": {
+      "namespace": "https://github.com/Ferhatduran55",
+      "name": "GeoFS-FlightAssistant",
+      "name:tr": "GeoFS-UçuşAsistanı",
+      "description": "Say hello to your flight assistant that enhances the experience!",
+      "description:tr": "Deneyimi zenginleştiren uçuş asistanınıza merhaba deyin!",
+      "author": "Ferhatduran55",
+      "match": [
+        "https://www.geo-fs.com/geofs.php?v=3.7"
+      ],
+      "grant": [
+        "GM_addStyle",
+        "GM_setValue",
+        "GM_getValue",
+        "GM_deleteValue",
+        "GM_listValues",
+        "unsafeWindow"
+      ],
+      "run-at": "document-end"
+    }
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "userscript-builder": "^0.4.0",
+    "vite": "^5.0.11",
+    "vite-plugin-solid": "^2.8.2"
+  },
+  "dependencies": {
+    "jquery": "^3.7.1",
+    "solid-js": "^1.8.11",
+    "solid-toast": "^0.5.0",
+    "vite-plugin-css-injected-by-js": "^3.4.0"
+  },
+  "exports": {
+    "@": "./src",
+    "@components": "./src/components",
+    "@utils": "./src/utils"
+  }
 }
