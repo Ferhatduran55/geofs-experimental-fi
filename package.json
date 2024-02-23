@@ -1,22 +1,28 @@
 {
   "name": "@ferhatduran55/geofs-flightassistant",
   "description": "Assistant for GeoFS Pilots.",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "main": "user.script.js",
   "author": "Ferhatduran55",
   "keywords": [
     "geo-fs",
     "geo-fs-flight-assistant",
-    "geo-fs-flight-assistant-plugin",
+    "geo-fs-assistant",
+    "geo-fs-pilot",
+    "geo-fs-pilot-assistant",
+    "geo-fs-pilot-helper",
+    "geo-fs-helper",
+    "geo-fs-enhancer",
+    "geo-fs-enhancement",
+    "geo-fs-enhanced",
+    "geo-fs-enhanced-experience",
+    "geofs",
     "tampermonkey",
-    "userscript",
-    "userscripts"
+    "userscript"
   ],
   "license": "MIT",
   "scripts": {
-    "start": "vite",
-    "dev": "vite",
-    "serve": "vite preview",
+    "dev": "vite build --minify=false && userscript-builder --mode dev",
     "build": "vite build && userscript-builder --mode dev",
     "release:bugfix": "vite build && userscript-builder --mode bugfix",
     "release:minor": "vite build && userscript-builder --mode minor",
@@ -29,10 +35,30 @@
     "fileName": "index",
     "meta": {
       "namespace": "https://github.com/Ferhatduran55",
-      "name": "GeoFS-FlightAssistant",
-      "name:tr": "GeoFS-UçuşAsistanı",
+      "name": "GeoFS-Flight Assistant",
+      "name:tr": "GeoFS-Uçuş Asistanı",
+      "name:fr": "GeoFS-Assistant DeVol",
+      "name:de": "GeoFS-Flugassistent",
+      "name:es": "GeoFS-Asistente de vuelo",
+      "name:it": "GeoFS-Assistente di volo",
+      "name:pt": "GeoFS-Assistente de voo",
+      "name:ru": "GeoFS-Помощник пилота",
+      "name:zh": "GeoFS-飞行助手",
+      "name:ja": "GeoFS-フライトアシスタント",
+      "name:ko": "GeoFS-비행 보조 프로그램",
+      "name:ar": "مساعد الطيران في GeoFS",
       "description": "Say hello to your flight assistant that enhances the experience!",
       "description:tr": "Deneyimi zenginleştiren uçuş asistanınıza merhaba deyin!",
+      "description:fr": "Dites bonjour à votre assistant de vol qui améliore l'expérience!",
+      "description:de": "Sagen Sie hallo zu Ihrem Flugassistenten, der das Erlebnis verbessert!",
+      "description:es": "¡Saluda a tu asistente de vuelo que mejora la experiencia!",
+      "description:it": "Dì ciao al tuo assistente di volo che migliora l'esperienza!",
+      "description:pt": "Diga olá ao seu assistente de voo que melhora a experiência!",
+      "description:ru": "Поздоровайтесь со своим помощником пилота, который улучшает опыт!",
+      "description:zh": "向您的飞行助手打招呼，增强体验！",
+      "description:ja": "体験を向上させるあなたのフライトアシスタントにこんにちはと言ってください！",
+      "description:ko": "경험을 향상시키는 비행 보조 프로그램에 인사하세요!",
+      "description:ar": "قل مرحبًا لمساعد الطيران الذي يعزز التجربة!",
       "author": "Ferhatduran55",
       "match": [
         "https://www.geo-fs.com/geofs.php?v=3.7"
@@ -43,6 +69,7 @@
         "GM_getValue",
         "GM_deleteValue",
         "GM_listValues",
+        "GM_info",
         "unsafeWindow"
       ],
       "run-at": "document-end"
@@ -57,7 +84,6 @@
     "vite-plugin-solid": "^2.8.2"
   },
   "dependencies": {
-    "jquery": "^3.7.1",
     "solid-js": "^1.8.11",
     "solid-toast": "^0.5.0",
     "vite-plugin-css-injected-by-js": "^3.4.0"

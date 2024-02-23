@@ -2,21 +2,17 @@ import { toast } from "solid-toast";
 import Storage from "@utils/Storage";
 import ReactiveProps from "@json/ReactiveProps";
 import { Reactive } from "@classes/Reactive";
-import { Assistant } from "@classes/Assistant";
+import { Container, Button } from "@components/Assistant";
 import { Toaster } from "@components/Toaster";
 
-const environment = import.meta.env;
-
 const App = () => {
-  Storage.config(environment.VITE_STORAGE_VERSION, {
-    prefix: environment.VITE_STORAGE_PREFIX,
+  Storage.config(import.meta.env.VITE_STORAGE_VERSION, {
+    prefix: import.meta.env.VITE_STORAGE_PREFIX,
   });
 
   const flightAssistant = {
-    Assistant,
-    Storage,
-    Reactive,
-    toast: toast,
+    version: GM.info.script.version,
+    state: {},
     instance: {},
   };
 
@@ -26,7 +22,8 @@ const App = () => {
   };
 
   unsafeWindow.executeOnEventDone("geofsInitialized", function () {
-    Assistant.init();
+    Container();
+    Button();
   });
 
   unsafeWindow.executeOnEventDone("geofsStarted", function () {
@@ -50,9 +47,9 @@ const App = () => {
   unsafeWindow.flightAssistant = flightAssistant;
 
   return (
-    <div>
+    <>
       <Toaster />
-    </div>
+    </>
   );
 };
 
