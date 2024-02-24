@@ -1,14 +1,14 @@
 import { toast } from "solid-toast";
-import Storage from "@utils/Storage";
+//import Storage from "@utils/Storage";
 import ReactiveProps from "@json/ReactiveProps";
 import { Reactive } from "@classes/Reactive";
 import { Container, Button } from "@components/Assistant";
 import { Toaster } from "@components/Toaster";
 
 const App = () => {
-  Storage.config(import.meta.env.VITE_STORAGE_VERSION, {
+  /*Storage.config(import.meta.env.VITE_STORAGE_VERSION, {
     prefix: import.meta.env.VITE_STORAGE_PREFIX,
-  });
+  });*/
 
   const flightAssistant = {
     version: GM.info.script.version,
@@ -21,17 +21,14 @@ const App = () => {
     temp: flightAssistant.instance,
   };
 
-  unsafeWindow.executeOnEventDone("geofsInitialized", function () {
-    Container();
-    Button();
-  });
-
   unsafeWindow.executeOnEventDone("geofsStarted", function () {
     const starter = new Promise((resolve, reject) => {
       setTimeout(() => {
         try {
           Reactive.props = ReactiveProps;
           Reactive.all();
+          Container();
+          Button();
           resolve("Assistant Started.");
         } catch (e) {
           reject(e);

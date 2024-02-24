@@ -27,7 +27,7 @@ export class Reactive {
     return this._options;
   }
 
-  static parse(obj, propName) {
+  static parse(obj, propName, options = {}) {
     let target = obj;
     try {
       if (typeof obj === "string") {
@@ -58,6 +58,10 @@ export class Reactive {
       }
 
       const [prop, setProp] = createSignal(value);
+      const cloneAfterCreation = (() =>
+        options?.cloneAfterCreation !== undefined
+          ? options?.cloneAfterCreation
+          : this._options?.cloneAfterCreation)();
 
       if (prop === undefined || setProp === undefined) {
         throw new Error("Signal not created.");
@@ -77,7 +81,7 @@ export class Reactive {
         throw new Error("Reactive property not created.");
       }
 
-      if (this._options.cloneAfterCreation) {
+      if (cloneAfterCreation) {
         if (this._options.temp === null) {
           throw new Error("Temporary object not defined.");
         }

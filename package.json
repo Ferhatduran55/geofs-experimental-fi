@@ -1,8 +1,8 @@
 {
   "name": "@ferhatduran55/geofs-flightassistant",
   "description": "Assistant for GeoFS Pilots.",
-  "version": "0.5.3",
-  "main": "user.script.js",
+  "version": "0.6.1",
+  "main": "index.user.js",
   "author": "Ferhatduran55",
   "keywords": [
     "geo-fs",
@@ -91,6 +91,10 @@
   "exports": {
     "@": "./src",
     "@components": "./src/components",
-    "@utils": "./src/utils"
+    "@utils": "./src/utils",
+    "@assets": "./src/assets",
+    "@classes": "./src/classes",
+    "@styles": "./src/styles",
+    "@json": "./src/json"
   }
 }
