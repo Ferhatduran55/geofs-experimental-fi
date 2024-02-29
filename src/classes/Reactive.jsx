@@ -36,25 +36,24 @@ export class Reactive {
         target = obj;
       } else {
         throw new Error(
-          "The first argument to parse must be an object or string path."
-        );
+          "The first argument to parse must be an object or string path.", obj);
       }
       if (typeof propName !== "string") {
-        throw new Error("The second argument to parse must be a string.");
+        throw new Error("The second argument to parse must be a string.", propName);
       }
 
       if (target === undefined) {
-        throw new Error("Invalid target.");
+        throw new Error("Invalid target.", target);
       }
 
       if (propName === undefined) {
-        throw new Error("Invalid property.");
+        throw new Error("Invalid property.", propName);
       }
 
       let value = target[propName];
 
       if (value === undefined) {
-        throw new Error("Invalid value.");
+        throw new Error("Invalid value.", value);
       }
 
       const [prop, setProp] = createSignal(value);
@@ -86,7 +85,7 @@ export class Reactive {
           throw new Error("Temporary object not defined.");
         }
         if (this._cache[propName] !== undefined) {
-          throw new Error("Property already exists in cache.");
+          throw new Error("Property already exists in cache.", propName);
         }
 
         const [reactiveProp, setReactiveProp] = [prop, setProp];
@@ -109,7 +108,7 @@ export class Reactive {
           Object.getOwnPropertyDescriptor(this._options.temp, propName) ===
           undefined
         ) {
-          throw new Error("Reactive property clone not defined.");
+          throw new Error("Reactive property clone not defined.", propName);
         }
       }
 

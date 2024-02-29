@@ -1,7 +1,7 @@
 {
   "name": "@ferhatduran55/geofs-experimental-fi",
   "description": "Experimental flight interface for GeoFS Pilots.",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "main": "index.user.js",
   "author": "Ferhatduran55",
   "keywords": [
