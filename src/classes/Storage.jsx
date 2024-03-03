@@ -1,25 +1,37 @@
-export default Storage = {
-  version: 0,
-  options: { prefix: "" },
-  config(version, options = { prefix: "" }) {
-    this.version = version;
-    this.options = options;
-  },
-  read(key, defaultValue) {
+export class Storage {
+  static _version;
+  static _options = { prefix: "" };
+  static get version() {
+    return this._version;
+  }
+  static set version(value) {
+    this._version = value;
+  }
+  static get options() {
+    return this._options;
+  }
+  static set options(value) {
+    this._options = value;
+  }
+  static config(version, options = { prefix: "" }) {
+    this._version = version;
+    this._options = options;
+  }
+  static read(key, defaultValue) {
     const raw = GM.getValue(this._prefix(key), defaultValue);
     return this._parse(raw);
-  },
-  write(key, value) {
+  }
+  static write(key, value) {
     const raw = this._stringify(value);
     return GM.setValue(this._prefix(key), raw);
-  },
-  delete(key) {
+  }
+  static delete(key) {
     return GM.deleteValue(this._prefix(key));
-  },
-  readKeys() {
+  }
+  static readKeys() {
     return GM.listValues();
-  },
-  set(key, value) {
+  }
+  static set(key, value) {
     let savedVal = this.read(key);
 
     if (this._isUndefined(savedVal) || !savedVal) {
@@ -28,8 +40,8 @@ export default Storage = {
       this.write(key, value);
       return true;
     }
-  },
-  add(key, value) {
+  }
+  static add(key, value) {
     let savedVal = this.read(key, false);
 
     if (this._isUndefined(savedVal) || !savedVal) {
@@ -56,8 +68,8 @@ export default Storage = {
       }
       return false;
     }
-  },
-  replace(key, itemFind, itemReplacement) {
+  }
+  static replace(key, itemFind, itemReplacement) {
     let savedVal = this.read(key, false);
 
     if (this._isUndefined(savedVal) || !savedVal) {
@@ -80,8 +92,8 @@ export default Storage = {
       }
       return false;
     }
-  },
-  remove(key, value) {
+  }
+  static remove(key, value) {
     if (this._isUndefined(value)) {
       this.delete(key);
       return true;
@@ -111,11 +123,11 @@ export default Storage = {
         return false;
       }
     }
-  },
-  get(key, defaultValue) {
+  }
+  static get(key, defaultValue) {
     return this.read(key, defaultValue);
-  },
-  getAll() {
+  }
+  static getAll() {
     const keys = this._listKeys();
     let obj = {};
 
@@ -123,43 +135,43 @@ export default Storage = {
       obj[keys[i]] = this.read(keys[i]);
     }
     return obj;
-  },
-  getKeys() {
+  }
+  static getKeys() {
     return this._listKeys();
-  },
-  getPrefix() {
-    return this.options.prefix;
-  },
-  empty() {
+  }
+  static getPrefix() {
+    return this._options.prefix;
+  }
+  static empty() {
     const keys = this._listKeys();
 
     for (let i = 0, len = keys.lenght; i < len; i++) {
       this.delete(keys[i]);
     }
-  },
-  has(key) {
+  }
+  static has(key) {
     return this.get(key) !== null;
-  },
-  forEach(callbackFunc) {
+  }
+  static forEach(callbackFunc) {
     const allContent = this.getAll();
 
     for (let prop in allContent) {
       callbackFunc(prop, allContent[prop]);
     }
-  },
-  _parse(value) {
+  }
+  static _parse(value) {
     if (this._isJson(value)) {
       return JSON.parse(value);
     }
     return value;
-  },
-  _stringify(value) {
+  }
+  static _stringify(value) {
     if (this._isJson(value)) {
       return value;
     }
     return JSON.stringify(value);
-  },
-  Keys(usePrefix = false) {
+  }
+  static _listKeys(usePrefix = false) {
     const prefixed = this.readKeys();
     let unprefixed = [];
 
@@ -171,28 +183,28 @@ export default Storage = {
       }
       return unprefixed;
     }
-  },
-  _prefix(key) {
-    return this.options.prefix + key;
-  },
-  _unprefix(key) {
-    return key.substring(this.options.prefix.length);
-  },
-  _isJson(item) {
+  }
+  static _prefix(key) {
+    return this._options.prefix + key;
+  }
+  static _unprefix(key) {
+    return key.substring(this._options.prefix.length);
+  }
+  static _isJson(item) {
     try {
       JSON.parse(item);
     } catch (e) {
       return false;
     }
     return true;
-  },
-  _isUndefined(a = undefined) {
+  }
+  static _isUndefined(a = undefined) {
     return a === undefined;
-  },
-  _isNull(a = null) {
+  }
+  static _isNull(a = null) {
     return a === null;
-  },
-  _is(object, type) {
+  }
+  static _is(object, type) {
     return !!object && object.constructor === type;
-  },
-};
+  }
+}

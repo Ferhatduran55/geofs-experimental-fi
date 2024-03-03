@@ -6,14 +6,7 @@ export class Reactive {
     cloneAfterCreation: false,
     temp: null,
   };
-  static _props = [];
   static _cache = {};
-  static set props(value) {
-    this._props = value;
-  }
-  static get props() {
-    return this._props;
-  }
   static set cache(value) {
     this._cache = value;
   }
@@ -113,16 +106,6 @@ export class Reactive {
       }
 
       return [prop, setProp];
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  static all() {
-    try {
-      this._props.forEach(({ target, prop }) => {
-        this.parse(target, prop);
-      });
     } catch (e) {
       console.error(e);
     }

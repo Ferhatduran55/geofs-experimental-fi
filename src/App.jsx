@@ -1,7 +1,7 @@
 import { toast } from "solid-toast";
 //import Storage from "@utils/Storage";
-import ReactiveProps from "@json/ReactiveProps";
-import { Reactive } from "@classes/Reactive";
+import propsData from "@json/Props";
+import { Props } from "@classes/Props";
 import { Container, Button } from "@components/Assistant";
 import { Toaster } from "@components/Toaster";
 
@@ -16,7 +16,7 @@ const App = () => {
     instance: {},
   };
 
-  Reactive.options = {
+  Props.reactive.options = {
     cloneAfterCreation: true,
     temp: flightAssistant.instance,
   };
@@ -25,8 +25,7 @@ const App = () => {
     const starter = new Promise((resolve, reject) => {
       setTimeout(() => {
         try {
-          Reactive.props = ReactiveProps;
-          Reactive.all();
+          Props.load(propsData);
           Container();
           Button();
           resolve("Assistant Started.");
