@@ -1,11 +1,11 @@
-import { Toaster as ToastContainer } from "solid-toast";
+import { Toaster } from "solid-toast";
 import { Portal } from "solid-js/web";
 
-export const Toaster = () => {
+export default () => {
   return (
     <>
       <Portal mount={document.body}>
-        <ToastContainer
+        <Toaster
           position="top-right"
           gutter={8}
           containerClassName=""

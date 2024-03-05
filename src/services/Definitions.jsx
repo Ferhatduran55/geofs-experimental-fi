@@ -2,7 +2,7 @@ import { toast } from "solid-toast";
 import toastOptions from "@json/ServicesToastOptions";
 import { Props } from "@classes/Props";
 
-export const get = async () => {
+export default async () => {
   return await new Promise((resolve, reject) => {
     try {
       const { allowed, ignored, reset } = Props.Definition;

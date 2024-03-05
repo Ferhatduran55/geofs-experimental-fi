@@ -37,9 +37,9 @@ export default [
       },
       reactive: true,
       allowed: [
-        { name: "thrust", type: "float" },
-        { name: "afterBurnerThrust", type: "float" },
-        { name: "reverseThrust", type: "float" },
+        { name: "thrust", type: "int" },
+        { name: "afterBurnerThrust", type: "int" },
+        { name: "reverseThrust", type: "int" },
       ],
       ignored: [
         "object",

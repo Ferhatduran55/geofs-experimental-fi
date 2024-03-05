@@ -2,8 +2,8 @@ import { toast } from "solid-toast";
 //import Storage from "@utils/Storage";
 import propsData from "@json/Props";
 import { Props } from "@classes/Props";
-import { Container, Button } from "@components/Assistant";
-import { Toaster } from "@components/Toaster";
+import { Container, Button } from "@layouts/Assistant";
+import Toaster from "@components/Toaster";
 
 const App = () => {
   /*Storage.config(import.meta.env.VITE_STORAGE_VERSION, {
@@ -12,7 +12,7 @@ const App = () => {
 
   const flightAssistant = {
     version: GM.info.script.version,
-    state: {},
+    refs: {},
     instance: {},
   };
 
