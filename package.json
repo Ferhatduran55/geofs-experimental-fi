@@ -1,7 +1,7 @@
 {
   "name": "@ferhatduran55/geofs-experimental-fi",
   "description": "Experimental flight interface for GeoFS Pilots.",
-  "version": "0.7.11",
+  "version": "0.7.13",
   "main": "index.user.js",
   "author": "Ferhatduran55",
   "keywords": [
@@ -74,16 +74,10 @@
   },
   "dependencies": {
     "solid-js": "^1.8.11",
-    "solid-toast": "^0.5.0",
+    "solid-sonner": "^0.2.5",
     "vite-plugin-css-injected-by-js": "^3.4.0"
   },
   "exports": {
-    "@": "./src",
-    "@components": "./src/components",
-    "@utils": "./src/utils",
-    "@assets": "./src/assets",
-    "@classes": "./src/classes",
-    "@styles": "./src/styles",
-    "@json": "./src/json"
+    "@": "./src"
   }
 }

@@ -50,11 +50,10 @@ export default (props) => {
     if (!props.name || !props.resource) {
       throw new Error("Group component requires a name and resource prop.");
     }
-    if (typeof props.resource !== "object") {
-      throw new Error("Group component resource prop must be an object.");
+    if (typeof props.resource !== "function") {
+      throw new Error("Group component resource prop must be an function.");
     }
-    let name = props.name;
-    let resource = Object.entries(props.resource)[0][1];
+    let { name, resource } = props;
     let icon = props.icon || true;
     let title = props.title || name;
     let reference = props.reference || null;

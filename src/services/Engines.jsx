@@ -1,4 +1,4 @@
-import { toast } from "solid-toast";
+import { toast } from "solid-sonner";
 import toastOptions from "@json/ServicesToastOptions";
 import { GroupRotation } from "@icons/GroupRotation";
 import { Props } from "@classes/Props";

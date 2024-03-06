@@ -3,20 +3,16 @@ import {
   onMount,
   onCleanup,
   createSignal,
-  createResource,
   createEffect,
   createMemo,
+  For,
 } from "solid-js";
-import getDefinitions from "@services/Definitions";
-import getEngines from "@services/Engines";
+import Groups from "@hooks/Groups";
 import Group from "@components/Group";
 import ui from "@json/UserInterface";
 
 const MenuComponent = () => {
-  const [engines, enginesSrc = { refetch }] = createResource(getEngines);
-  const [definitions, definitionsSrc = { refetch }] =
-    createResource(getDefinitions);
-
+  const groups = Groups();
   const [currentAircraftId, setCurrentAircraftId] = createSignal();
   setCurrentAircraftId(flightAssistant.instance.id);
   const sameAircraftId = createMemo(
@@ -27,36 +23,35 @@ const MenuComponent = () => {
     if (!sameAircraftId()) {
       setCurrentAircraftId(flightAssistant.instance.id);
       setTimeout(() => {
-        enginesSrc.refetch();
-        definitionsSrc.refetch();
+        for (let i = 0; i < groups.length; i++) {
+          groups[i].resource[1].refetch();
+        }
       }, 1000);
     }
   });
 
-  let refDefinitions;
-  let refEngines;
-
   onMount(() => {
-    flightAssistant.refs.definitions = refDefinitions;
-    flightAssistant.refs.engines = refEngines;
+    for (let i = 0; i < groups.length; i++) {
+      let { name, reference } = groups[i];
+      flightAssistant.refs[name] = reference;
+    }
   });
 
   return (
     <>
-      <Group
-        name="definitions"
-        title="Definitions"
-        icon={true}
-        resource={{ definitions }}
-        reference={refDefinitions}
-      />
-      <Group
-        name="engines"
-        title="Engines"
-        icon={true}
-        resource={{ engines }}
-        reference={refEngines}
-      />
+      <For each={groups}>
+        {(group) => {
+          return (
+            <Group
+              name={group.name}
+              title={group.title}
+              icon={group.icon}
+              resource={group.resource[0]}
+              reference={group.reference}
+            />
+          );
+        }}
+      </For>
     </>
   );
 };

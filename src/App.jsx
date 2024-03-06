@@ -1,4 +1,4 @@
-import { toast } from "solid-toast";
+import { toast } from "solid-sonner";
 //import Storage from "@utils/Storage";
 import propsData from "@json/Props";
 import { Props } from "@classes/Props";
@@ -36,7 +36,7 @@ const App = () => {
     });
     toast.promise(starter, {
       loading: "Assistant is starting..",
-      success: (data) => `Success: ${data}`,
+      success: (data) => data,
       error: (err) => `Error: ${err.message}`,
     });
   });
