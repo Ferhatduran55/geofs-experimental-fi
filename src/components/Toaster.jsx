@@ -1,23 +1,13 @@
-import { Toaster as ToastContainer } from "solid-toast";
+import { Toaster } from "solid-sonner";
 import { Portal } from "solid-js/web";
 
-export const Toaster = () => {
+import "@styles/sonner.css";
+
+export default () => {
   return (
     <>
       <Portal mount={document.body}>
-        <ToastContainer
-          position="top-right"
-          gutter={8}
-          containerClassName=""
-          containerStyle={{}}
-          toastOptions={{
-            className: "",
-            style: {
-              background: "#363636",
-              color: "#fff",
-            },
-          }}
-        />
+        <Toaster position="top-right" gap={8} expand={false} richColors />
       </Portal>
     </>
   );

@@ -1,8 +1,8 @@
-import { toast } from "solid-toast";
+import { toast } from "solid-sonner";
 import toastOptions from "@json/ServicesToastOptions";
 import { Props } from "@classes/Props";
 
-export const get = async () => {
+export default async () => {
   return await new Promise((resolve, reject) => {
     try {
       const { allowed, ignored, reset } = Props.Definition;
@@ -127,6 +127,22 @@ export const get = async () => {
               }}
             >
               Reset
+            </button>
+            <button
+              class="w-fit m-2 border-0 rounded-md px-3 bg-sky-600 text-white shadow-md hover:bg-sky-700 hover:cursor-pointer"
+              onclick={() => {
+                toast.info("Coming soon..", toastOptions);
+              }}
+            >
+              Save
+            </button>
+            <button
+              class="w-fit m-2 border-0 rounded-md px-3 bg-sky-600 text-white shadow-md hover:bg-sky-700 hover:cursor-pointer"
+              onclick={() => {
+                toast.info("Coming soon..", toastOptions);
+              }}
+            >
+              Load
             </button>
           </li>
         );

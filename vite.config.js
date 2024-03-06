@@ -34,7 +34,9 @@ export default defineConfig({
       "@styles": path.resolve(__dirname, "src/assets/styles"),
       "@json": path.resolve(__dirname, "src/assets/json"),
       "@icons": path.resolve(__dirname, "src/assets/icons"),
-      "@services": path.resolve(__dirname, "src/components/services"),
+      "@services": path.resolve(__dirname, "src/services"),
+      "@layouts": path.resolve(__dirname, "src/layouts"),
+      "@hooks": path.resolve(__dirname, "src/hooks")
     },
   },
 });
