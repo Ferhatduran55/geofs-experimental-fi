@@ -10,6 +10,7 @@ import {
 import Groups from "@hooks/Groups";
 import Group from "@components/Group";
 import ui from "@json/UserInterface";
+import { refreshMarker } from "@services/AircraftMarkers";
 
 const MenuComponent = () => {
   const groups = Groups();
@@ -22,6 +23,7 @@ const MenuComponent = () => {
   createEffect(() => {
     if (!sameAircraftId()) {
       setCurrentAircraftId(flightAssistant.instance.id);
+      refreshMarker();
       setTimeout(() => {
         for (let i = 0; i < groups.length; i++) {
           groups[i].resource[1].refetch();
