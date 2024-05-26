@@ -1,15 +1,11 @@
 import { toast } from "solid-sonner";
-//import Storage from "@utils/Storage";
 import propsData from "@json/Props";
 import { Props } from "@classes/Props";
 import { Container, Button } from "@layouts/Assistant";
+import { defineMarkers, getGroup, getMarker, refreshMarker } from "@services/AircraftMarkers";
 import Toaster from "@components/Toaster";
 
 const App = () => {
-  /*Storage.config(import.meta.env.VITE_STORAGE_VERSION, {
-    prefix: import.meta.env.VITE_STORAGE_PREFIX,
-  });*/
-
   const flightAssistant = {
     version: GM.info.script.version,
     refs: {},
@@ -22,12 +18,26 @@ const App = () => {
   };
 
   unsafeWindow.executeOnEventDone("geofsStarted", function () {
+    geofs.map.addPlayerMarker = function (a, b, c) {
+      b || (b = getGroup(multiplayer.users[a].aircraft.toString()));
+      ui.playerMarkers[a] ||
+        ((b = {
+          coords: [0, 0],
+          icon: geofs.api.map.getIcon(b, getMarker(b)),
+          label: c || "-",
+        }),
+        (ui.playerMarkers[a] = new geofs.api.map.marker(b)));
+      geofs.api.map._map && this.mapActive && ui.playerMarkers[a].addToMap();
+      return ui.playerMarkers[a];
+    };
     const starter = new Promise((resolve, reject) => {
       setTimeout(() => {
         try {
           Props.load(propsData);
           Container();
           Button();
+          defineMarkers();
+          refreshMarker();
           resolve("Assistant Started.");
         } catch (e) {
           reject(e);
