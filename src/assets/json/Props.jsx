@@ -29,6 +29,16 @@ export default [
     },
   },
   {
+    name: "Icons",
+    options: {
+      source: {
+        target: "geofs.map",
+        prop: "icons",
+      },
+      reactive: true,
+    },
+  },
+  {
     name: "Engines",
     options: {
       source: {
