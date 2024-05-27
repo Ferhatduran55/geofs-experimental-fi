@@ -7,6 +7,7 @@ import twinPistonEngine from "./twin-piston-engine";
 import privateJet from "./private-jet";
 import twinTurboprop from "./twin-turboprop";
 import twinjetNarrowBody from "./twinjet-narrow-body";
+import rearMountedTwinJet from "./rear-mounted-twin-jet";
 
 const defs = {
   outline: (
@@ -52,6 +53,7 @@ const icons = {
   "private-jet": privateJet,
   "twin-turboprop": twinTurboprop,
   "twinjet-narrow-body": twinjetNarrowBody,
+  "rear-mounted-twin-jet":rearMountedTwinJet
 };
 
 export default { defs, icons };

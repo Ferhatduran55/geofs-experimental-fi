@@ -8,4 +8,5 @@ export default {
   "private-jet": ["12"],
   "twin-turboprop": ["13"],
   "twinjet-narrow-body": ["14"],
+  "rear-mounted-twin-jet": ["15"],
 };
