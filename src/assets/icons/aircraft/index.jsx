@@ -5,6 +5,7 @@ import glider from "./glider";
 import singleEngine from "./single-engine";
 import twinPistonEngine from "./twin-piston-engine";
 import privateJet from "./private-jet";
+import twinTurboprop from "./twin-turboprop";
 
 const defs = {
   outline: (
@@ -44,10 +45,11 @@ const icons = {
   default: def,
   fighter: fighter,
   "fighter-jet": fighterJet,
-  "glider": glider,
+  glider: glider,
   "single-engine": singleEngine,
   "twin-piston-engine": twinPistonEngine,
   "private-jet": privateJet,
+  "twin-turboprop": twinTurboprop,
 };
 
 export default { defs, icons };
