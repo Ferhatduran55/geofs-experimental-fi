@@ -9,4 +9,5 @@ export default {
   "twin-turboprop": ["13"],
   "twinjet-narrow-body": ["14"],
   "rear-mounted-twin-jet": ["15"],
+  "wide-body-4-engine": ["16"],
 };
