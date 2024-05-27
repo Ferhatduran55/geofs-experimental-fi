@@ -7,4 +7,5 @@ export default {
   "twin-piston-engine": ["11"],
   "private-jet": ["12"],
   "twin-turboprop": ["13"],
+  "twinjet-narrow-body": ["14"],
 };
