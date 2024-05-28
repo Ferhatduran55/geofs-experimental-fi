@@ -46,16 +46,16 @@ const defs = {
 };
 const icons = {
   default: def,
-  fighter: fighter,
-  "fighter-jet": fighterJet,
-  glider: glider,
-  "single-engine": singleEngine,
-  "twin-piston-engine": twinPistonEngine,
-  "private-jet": privateJet,
-  "twin-turboprop": twinTurboprop,
-  "twinjet-narrow-body": twinjetNarrowBody,
-  "rear-mounted-twin-jet":rearMountedTwinJet,
-  "wide-body-4-engine": wideBody4Engine,
+  fighter,
+  fighterJet,
+  glider,
+  singleEngine,
+  twinPistonEngine,
+  privateJet,
+  twinTurboprop,
+  twinjetNarrowBody,
+  rearMountedTwinJet,
+  wideBody4Engine,
 };
 
 export default { defs, icons };
