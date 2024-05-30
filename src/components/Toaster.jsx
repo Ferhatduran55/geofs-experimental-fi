@@ -1,8 +1,6 @@
 import { Toaster } from "solid-sonner";
 import { Portal } from "solid-js/web";
 
-import "@styles/sonner.css";
-
 export default () => {
   return (
     <>
