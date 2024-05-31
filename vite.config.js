@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import solidPlugin from "vite-plugin-solid";
 import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
@@ -24,19 +25,12 @@ export default defineConfig({
       },
     },
   },
+  test: {
+    // ...
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "@components": path.resolve(__dirname, "src/components"),
-      "@utils": path.resolve(__dirname, "src/utils"),
-      "@classes": path.resolve(__dirname, "src/classes"),
-      "@assets": path.resolve(__dirname, "src/assets"),
-      "@styles": path.resolve(__dirname, "src/assets/styles"),
-      "@json": path.resolve(__dirname, "src/assets/json"),
-      "@icons": path.resolve(__dirname, "src/assets/icons"),
-      "@services": path.resolve(__dirname, "src/services"),
-      "@layouts": path.resolve(__dirname, "src/layouts"),
-      "@hooks": path.resolve(__dirname, "src/hooks")
     },
   },
 });
