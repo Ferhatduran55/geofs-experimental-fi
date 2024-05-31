@@ -1,6 +1,6 @@
 import { toast } from "solid-sonner";
-import toastOptions from "@json/ServicesToastOptions";
-import { Props } from "@classes/Props";
+import toastOptions from "@/assets/json/ServicesToastOptions";
+import { Props } from "@/classes/Props";
 
 export default async () => {
   return await new Promise((resolve, reject) => {

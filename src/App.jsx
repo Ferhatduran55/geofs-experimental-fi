@@ -1,9 +1,14 @@
 import { toast } from "solid-sonner";
-import propsData from "@json/Props";
-import { Props } from "@classes/Props";
-import { Container, Button } from "@layouts/Assistant";
-import { defineMarkers, getGroup, getMarker, refreshMarker } from "@services/AircraftMarkers";
-import Toaster from "@components/Toaster";
+import propsData from "@/assets/json/Props";
+import { Props } from "@/classes/Props";
+import { Container, Button } from "@/layouts/Assistant";
+import {
+  defineMarkers,
+  getGroup,
+  getMarker,
+  refreshMarker,
+} from "@/services/AircraftMarkers";
+import Toaster from "@/components/Toaster";
 
 const App = () => {
   const flightAssistant = {

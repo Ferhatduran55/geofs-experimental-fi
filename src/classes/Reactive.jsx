@@ -1,5 +1,5 @@
 import { createSignal } from "solid-js";
-import { getObjectFromPath } from "@utils/Misc";
+import { getObjectFromPath } from "@/utils/Misc";
 
 export class Reactive {
   static _options = {

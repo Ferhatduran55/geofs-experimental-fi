@@ -7,10 +7,10 @@ import {
   createMemo,
   For,
 } from "solid-js";
-import Groups from "@hooks/Groups";
-import Group from "@components/Group";
-import ui from "@json/UserInterface";
-import { refreshMarker } from "@services/AircraftMarkers";
+import Groups from "@/hooks/Groups";
+import Group from "@/components/Group";
+import ui from "@/assets/json/UserInterface";
+import { refreshMarker } from "@/services/AircraftMarkers";
 
 const MenuComponent = () => {
   const groups = Groups();

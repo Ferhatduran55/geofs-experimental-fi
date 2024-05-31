@@ -1,4 +1,4 @@
-import { Reactive } from "@classes/Reactive";
+import { Reactive } from "@/classes/Reactive";
 
 export class Props {
   static _reactive = Reactive;

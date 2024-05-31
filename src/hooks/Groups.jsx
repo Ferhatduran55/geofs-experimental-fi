@@ -1,6 +1,6 @@
 import { createResource } from "solid-js";
-import getDefinitions from "@services/Definitions";
-import getEngines from "@services/Engines";
+import getDefinitions from "@/services/Definitions";
+import getEngines from "@/services/Engines";
 
 export default () => [
   {

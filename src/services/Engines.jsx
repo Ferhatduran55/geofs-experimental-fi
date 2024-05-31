@@ -1,7 +1,7 @@
 import { toast } from "solid-sonner";
-import toastOptions from "@json/ServicesToastOptions";
-import { GroupRotation } from "@icons/GroupRotation";
-import { Props } from "@classes/Props";
+import toastOptions from "@/assets/json/ServicesToastOptions";
+import { GroupRotation } from "@/assets/icons/GroupRotation";
+import { Props } from "@/classes/Props";
 
 export default async () => {
   return await new Promise((resolve, reject) => {
