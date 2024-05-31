@@ -1,34 +1,26 @@
-import { svgToImg } from "@utils/Misc";
-import options from "@json/AircraftMarkerOptions";
-import aircraftGroups from "@json/AircraftGroups";
-import aircraftIcons from "@icons/aircraft";
-import SvgToImgOptions from "../assets/json/SvgToImgOptions";
+import options from "@/assets/json/AircraftMarkerOptions";
+import aircraftGroups from "@/assets/json/AircraftGroups";
+import aircraftIcons from "@/assets/icons/aircraft";
+import SvgToImgOptions from "@/assets/json/SvgToImgOptions";
+
 function defineMarkers() {
   for (let a in aircraftGroups)
-    if (aircraftIcons.icons[a]) {
-      flightAssistant.instance.icons[a] = {
-        url: svgToImg(
-          aircraftIcons.icons[a],
-          SvgToImgOptions.user,
-          aircraftIcons.defs
-        ),
+    if (aircraftIcons[a]) {
+      flightAssistant.instance[a] = {
+        url: aircraftIcons[a].render(SvgToImgOptions.user).toBase64(),
         ...options.user,
       };
       addSelfMarker(a);
     }
 }
 function addSelfMarker(a) {
-  flightAssistant.instance.icons[a + "-self"] = {
-    url: svgToImg(
-      aircraftIcons.icons[a],
-      SvgToImgOptions.self,
-      aircraftIcons.defs
-    ),
+  flightAssistant.instance[a + "-self"] = {
+    url: aircraftIcons[a].render(SvgToImgOptions.self).toBase64(),
     ...options.self,
   };
 }
 function getMarker(a, b) {
-  return flightAssistant.instance.icons[b ? a + "-self" : a];
+  return flightAssistant.instance[b ? a + "-self" : a];
 }
 function getGroup(a) {
   for (let b in aircraftGroups)
