@@ -1,6 +1,7 @@
 import { toast } from "solid-sonner";
 import propsData from "./assets/json/Props";
 import Props from "./classes/Props";
+import Reactive from "./classes/Reactive";
 import { Container, Button } from "./layouts/Assistant";
 import {
   defineMarkers,
@@ -17,7 +18,7 @@ const App = () => {
     instance: {},
   };
 
-  Props.reactive.options = {
+  Reactive.options = {
     cloneAfterCreation: true,
     temp: flightAssistant.instance,
   };
