@@ -6,7 +6,7 @@ class Reactive {
     cloneAfterCreation: false,
     temp: {},
   };
-  static _cache: ReactiveCache;
+  static _cache: ReactiveCache = {};
   static set cache(value) {
     this._cache = value;
   }
@@ -19,97 +19,65 @@ class Reactive {
   static get options() {
     return this._options;
   }
-  static parse(obj: any, propName: any, options: ParseOptions) {
-    let target: any = obj;
-    try {
-      if (typeof obj === "string") {
-        target = getObjectFromPath(obj);
-      } else if (typeof obj === "object") {
-        target = obj;
-      } else {
-        throw new Error(
-          "The first argument to parse must be an object or string path. " + obj
-        );
-      }
-      if (typeof propName !== "string") {
-        throw new Error(
-          "The second argument to parse must be a string. " + propName
-        );
-      }
+  static parse(target: any, propName: any, options: ParseOptions) {
+    if (target[propName] === undefined) {
+      throw new Error("Invalid path.");
+    }
 
-      if (target === undefined) {
-        throw new Error("Invalid target. " + target);
-      }
+    const [prop, setProp] = createSignal(target[propName]);
+    const cloneAfterCreation =
+      options?.cloneAfterCreation ?? this._options.cloneAfterCreation;
 
-      if (propName === undefined) {
-        throw new Error("Invalid property. " + propName);
-      }
+    Object.defineProperty(target, propName, {
+      get: function () {
+        return prop();
+      },
+      set: function (newValue) {
+        target[propName] = newValue;
+        setProp(newValue);
+      },
+    });
 
-      let value = target[propName];
+    if (Object.getOwnPropertyDescriptor(target, propName) === undefined) {
+      throw new Error("Reactive property not created.");
+    }
 
-      if (value === undefined) {
-        throw new Error("Invalid value. " + value);
-      }
+    if (cloneAfterCreation) {
+      if (this._options.temp === null)
+        throw new Error("Temporary object not defined.");
 
-      const [prop, setProp] = createSignal(value);
-      const cloneAfterCreation = (() =>
-        options?.cloneAfterCreation !== undefined
-          ? options?.cloneAfterCreation
-          : this._options?.cloneAfterCreation)();
-
-      if (prop === undefined || setProp === undefined) {
-        throw new Error("Signal not created.");
+      if (this._cache[propName] !== undefined) {
+        throw new Error("Property already exists in cache. " + propName);
       }
 
-      Object.defineProperty(target, propName, {
+      const [reactiveProp, setReactiveProp] = [prop, setProp];
+
+      this._cache[propName] = true;
+      Object.defineProperty(this._options.temp, propName, {
         get: function () {
-          return prop();
+          return reactiveProp();
         },
         set: function (newValue) {
-          value = newValue;
-          setProp(newValue);
+          setReactiveProp(newValue);
         },
       });
+    }
 
-      if (Object.getOwnPropertyDescriptor(target, propName) === undefined) {
-        throw new Error("Reactive property not created.");
-      }
-
-      if (cloneAfterCreation) {
-        if (this._options.temp === null) {
-          throw new Error("Temporary object not defined.");
-        }
-        if (this._cache[propName] !== undefined) {
-          throw new Error("Property already exists in cache. " + propName);
-        }
-
-        const [reactiveProp, setReactiveProp] = [prop, setProp];
-
-        if (reactiveProp === undefined || setReactiveProp === undefined) {
-          throw new Error("Reactive property not cloned.");
-        }
-        this._cache[propName] = true;
-
-        Object.defineProperty(this._options.temp, propName, {
-          get: function () {
-            return reactiveProp();
-          },
-          set: function (newValue) {
-            setReactiveProp(newValue);
-          },
-        });
-
-        if (
-          Object.getOwnPropertyDescriptor(this._options.temp, propName) ===
-          undefined
-        ) {
-          throw new Error("Reactive property clone not defined. " + propName);
-        }
-      }
-
-      return [prop, setProp];
-    } catch (e) {
-      console.error(e);
+    return [prop, setProp];
+  }
+  static smartParse(
+    target: string | object,
+    propName: string,
+    options: ParseOptions
+  ) {
+    if (typeof target === "string" && typeof propName === "string") {
+      return this.parse(getObjectFromPath(target), propName, options);
+    } else if (typeof target === "object" && typeof propName === "string") {
+      return this.parse(target, propName, options);
+    } else {
+      throw new Error(
+        "The target must be a string or an object. The property must be a string."
+      );
     }
   }
 }
