@@ -6,7 +6,7 @@ import SvgToImgOptions from "../assets/json/SvgToImgOptions";
 function defineMarkers() {
   for (let a in aircraftGroups)
     if (aircraftIcons[a]) {
-      flightAssistant.instance[a] = {
+      flightAssistant.instance.icons[a] = {
         url: aircraftIcons[a].render(SvgToImgOptions.user).toBase64(),
         ...options.user,
       };
@@ -14,13 +14,13 @@ function defineMarkers() {
     }
 }
 function addSelfMarker(a: string) {
-  flightAssistant.instance[a + "-self"] = {
+  flightAssistant.instance.icons[a + "-self"] = {
     url: aircraftIcons[a].render(SvgToImgOptions.self).toBase64(),
     ...options.self,
   };
 }
 function getMarker(a: string, b: boolean = !1) {
-  return flightAssistant.instance[b ? a + "-self" : a];
+  return flightAssistant.instance.icons[b ? a + "-self" : a];
 }
 function getGroup(a: string) {
   for (let b in aircraftGroups)
