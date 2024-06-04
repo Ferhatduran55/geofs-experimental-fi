@@ -1,7 +1,7 @@
 import Reactive from "./Reactive";
 
 class Props {
-  static _reactive = Reactive;
+  static _reactive: Reactive;
   static _data: any = {};
   static get reactive() {
     return this._reactive;
@@ -28,7 +28,7 @@ class Props {
             if (!options.source.target || !options.source.prop) {
               throw new Error("Reactive props require a target and prop");
             }
-            this._reactive.parse(
+            Reactive.smartParse(
               source.target,
               source.prop,
               options.source?.options
