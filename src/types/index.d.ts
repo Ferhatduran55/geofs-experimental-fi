@@ -74,7 +74,7 @@ declare global {
 
   type ReactiveOptions = {
     cloneAfterCreation: boolean;
-    temp: object;
+    temp: any;
   };
 
   declare class Reactive {
