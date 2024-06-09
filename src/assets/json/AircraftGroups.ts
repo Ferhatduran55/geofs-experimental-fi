@@ -10,6 +10,7 @@ const groups: AircraftGroups = {
   twinjetNarrowBody: ["14"],
   rearMountedTwinJet: ["15"],
   wideBody4Engine: ["16"],
+  twinjetNarrowBody2: ["17"],
 };
 
 export default groups;
