@@ -1,4 +1,4 @@
-import { GroupRotation } from "../assets/icons/GroupRotation";
+import GroupRotation from "../assets/icons/GroupRotation";
 import { Switch, Match, Suspense, For } from "solid-js";
 
 const Summary = (props: any) => {
