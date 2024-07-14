@@ -1,6 +1,38 @@
 declare global {
+  interface AircraftListItem {
+    community: number;
+    dir: string;
+    multiplayerFiles: string;
+    name: string;
+    path: string;
+  }
+
+  interface AircraftInstanceDefinition {
+    airbrakesTravelTime?: number;
+    accessoriesTravelTime?: number;
+    flapsTravelTime?: number;
+    flapsSteps?: number;
+    gearTravelTime?: number;
+    zeroThrustAltitude?: number;
+    zeroRPMAltitude?: number;
+    mass?: number;
+    minRPM?: number;
+    maxRPM?: number;
+  }
+
+  interface AircraftInstanceEngineItem {
+    thrust?: number;
+    afterBurnerThrust?: number;
+    reverseThrust?: number;
+  }
   interface Geofs {
     map: {
+      icons: {
+        url: string;
+        anchor: [number, number];
+        className: string;
+        size: [number, number];
+      };
       planeMarker: any;
       mapActive: any;
       addPlayerMarker: (a: any, b: any, c: any) => any;
@@ -12,6 +44,14 @@ declare global {
         marker: any;
       };
     };
+    aircraft: {
+      instance: {
+        id: string;
+        definition?: AircraftInstanceDefinition;
+        engines?: AircraftInstanceEngineItem[];
+      };
+    };
+    aircraftList: AircraftListItem[];
   }
 
   interface Multiplayer {
@@ -34,6 +74,18 @@ declare global {
     anchor: number[];
     className: string;
     size: number[];
+  }
+
+  declare class Aircraft {
+    static _id: string;
+    static _instance: any;
+    static _definition: any;
+    static get instance(): any;
+    static set instance(value: any);
+    static get definition(): any;
+    static set definition(value: any);
+    static get engines(): any;
+    static set engines(value: any);
   }
 
   declare class Marker {
@@ -162,6 +214,7 @@ declare namespace ExperimentalFlightInterface {
     version: string;
     refs: Refs;
     instance: Instance;
+    aircraft?: Aircraft;
   }
 }
 
