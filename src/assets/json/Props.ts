@@ -61,15 +61,5 @@ export default [
         "array",
       ],
     },
-  },
-  {
-    name: "id",
-    options: {
-      source: {
-        target: "geofs.aircraft.instance",
-        prop: "id",
-      },
-      reactive: true,
-    },
-  },
+  }
 ];
