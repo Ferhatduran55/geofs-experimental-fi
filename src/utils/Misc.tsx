@@ -1,4 +1,4 @@
-export function getObjectFromPath(path: string): object {
+export function getObjectFromPath(path: string): any {
   const parts: any = path.split(".");
   let obj = unsafeWindow;
   for (let part of parts) {
