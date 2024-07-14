@@ -1,6 +1,6 @@
 import { toast } from "solid-sonner";
 import toastOptions from "../assets/json/ServicesToastOptions";
-import { GroupRotation } from "../assets/icons/GroupRotation";
+import GroupRotation from "../assets/icons/GroupRotation";
 import Props from "../classes/Props";
 import { Switch, Match, For } from "solid-js";
 

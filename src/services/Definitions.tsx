@@ -32,6 +32,13 @@ export default async () => {
         const isInt = syncType === "int";
         const isFloat = syncType === "float";
         const isText = syncType === "string";
+        /*
+        response.push(
+          <li class="flex gap-2">
+            <Input name={propName} type={syncType} comment={hasComment} resource="flightAssistant.instance.definition" />
+          </li>
+        );
+        */
 
         let props: ServiceItemInputAttributes | any = {};
         if (isText) {

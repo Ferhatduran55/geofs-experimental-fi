@@ -30,7 +30,7 @@ function getGroup(a: string) {
   return "default";
 }
 function refreshMarker() {
-  let g = getGroup(flightAssistant.instance.id);
+  let g = getGroup(geofs.aircraft.instance.id);
   geofs.map.planeMarker && geofs.map.planeMarker.destroy();
   geofs.map.planeMarker = new geofs.api.map.marker({
     zIndex: 1e3,
