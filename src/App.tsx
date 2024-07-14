@@ -2,6 +2,7 @@ import { toast } from "solid-sonner";
 import propsData from "./assets/json/Props";
 import Props from "./classes/Props";
 import Reactive from "./classes/Reactive";
+import Aircraft from "./classes/Aircraft";
 import { Container, Button } from "./layouts/Assistant";
 import {
   defineMarkers,
@@ -16,6 +17,7 @@ const App = () => {
     version: GM.info.script.version,
     refs: {},
     instance: {},
+    aircraft: Aircraft,
   };
 
   Reactive.options = {
@@ -44,6 +46,7 @@ const App = () => {
           Button();
           defineMarkers();
           refreshMarker();
+          Aircraft.refresh();
           resolve("Assistant Started.");
         } catch (e) {
           reject(e);
