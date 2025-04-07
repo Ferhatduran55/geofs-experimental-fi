@@ -1,0 +1,91 @@
+<svg viewBox="0 0 40 40" width="40px" height="40px" xmlns="http://www.w3.org/2000/svg"
+    xmlns:bx="https://boxy-svg.com"> <!-- 
+        DATE: 2024-06-09T16:20:00.000Z
+        SIZE: 40x40
+    -->
+    <defs>
+        <bx:grid x="0" y="0" width="1" height="1"></bx:grid>
+        <bx:guide x="0" y="20" angle="0"></bx:guide>
+        <bx:guide x="1" y="20" angle="0"></bx:guide>
+        <bx:guide x="2" y="20" angle="0"></bx:guide>
+        <bx:guide x="3" y="20" angle="0"></bx:guide>
+        <bx:guide x="4" y="20" angle="0"></bx:guide>
+        <bx:guide x="5" y="20" angle="0"></bx:guide>
+        <bx:guide x="6" y="20" angle="0"></bx:guide>
+        <bx:guide x="7" y="20" angle="0"></bx:guide>
+        <bx:guide x="8" y="20" angle="0"></bx:guide>
+        <bx:guide x="9" y="20" angle="0"></bx:guide>
+        <bx:guide x="10" y="20" angle="0"></bx:guide>
+        <bx:guide x="11" y="20" angle="0"></bx:guide>
+        <bx:guide x="12" y="20" angle="0"></bx:guide>
+        <bx:guide x="13" y="20" angle="0"></bx:guide>
+        <bx:guide x="14" y="20" angle="0"></bx:guide>
+        <bx:guide x="15" y="20" angle="0"></bx:guide>
+        <bx:guide x="16" y="20" angle="0"></bx:guide>
+        <bx:guide x="17" y="20" angle="0"></bx:guide>
+        <bx:guide x="18" y="20" angle="0"></bx:guide>
+        <bx:guide x="19" y="20" angle="0"></bx:guide>
+        <bx:guide x="20" y="20" angle="0"></bx:guide> <!-- ORIGIN-CENTER-X -->
+        <bx:guide x="21" y="20" angle="0"></bx:guide>
+        <bx:guide x="22" y="20" angle="0"></bx:guide>
+        <bx:guide x="23" y="20" angle="0"></bx:guide>
+        <bx:guide x="24" y="20" angle="0"></bx:guide>
+        <bx:guide x="25" y="20" angle="0"></bx:guide>
+        <bx:guide x="26" y="20" angle="0"></bx:guide>
+        <bx:guide x="27" y="20" angle="0"></bx:guide>
+        <bx:guide x="28" y="20" angle="0"></bx:guide>
+        <bx:guide x="29" y="20" angle="0"></bx:guide>
+        <bx:guide x="30" y="20" angle="0"></bx:guide>
+        <bx:guide x="31" y="20" angle="0"></bx:guide>
+        <bx:guide x="32" y="20" angle="0"></bx:guide>
+        <bx:guide x="33" y="20" angle="0"></bx:guide>
+        <bx:guide x="34" y="20" angle="0"></bx:guide>
+        <bx:guide x="35" y="20" angle="0"></bx:guide>
+        <bx:guide x="36" y="20" angle="0"></bx:guide>
+        <bx:guide x="37" y="20" angle="0"></bx:guide>
+        <bx:guide x="38" y="20" angle="0"></bx:guide>
+        <bx:guide x="39" y="20" angle="0"></bx:guide>
+        <bx:guide x="40" y="20" angle="0"></bx:guide>
+        <bx:guide x="20" y="0" angle="90"></bx:guide>
+        <bx:guide x="20" y="1" angle="90"></bx:guide>
+        <bx:guide x="20" y="2" angle="90"></bx:guide>
+        <bx:guide x="20" y="3" angle="90"></bx:guide>
+        <bx:guide x="20" y="4" angle="90"></bx:guide>
+        <bx:guide x="20" y="5" angle="90"></bx:guide>
+        <bx:guide x="20" y="6" angle="90"></bx:guide>
+        <bx:guide x="20" y="7" angle="90"></bx:guide>
+        <bx:guide x="20" y="8" angle="90"></bx:guide>
+        <bx:guide x="20" y="9" angle="90"></bx:guide>
+        <bx:guide x="20" y="10" angle="90"></bx:guide>
+        <bx:guide x="20" y="11" angle="90"></bx:guide>
+        <bx:guide x="20" y="12" angle="90"></bx:guide>
+        <bx:guide x="20" y="13" angle="90"></bx:guide>
+        <bx:guide x="20" y="14" angle="90"></bx:guide>
+        <bx:guide x="20" y="15" angle="90"></bx:guide>
+        <bx:guide x="20" y="16" angle="90"></bx:guide>
+        <bx:guide x="20" y="17" angle="90"></bx:guide>
+        <bx:guide x="20" y="18" angle="90"></bx:guide>
+        <bx:guide x="20" y="19" angle="90"></bx:guide>
+        <bx:guide x="20" y="20" angle="90"></bx:guide> <!-- ORIGIN-CENTER-Y -->
+        <bx:guide x="20" y="21" angle="90"></bx:guide>
+        <bx:guide x="20" y="22" angle="90"></bx:guide>
+        <bx:guide x="20" y="23" angle="90"></bx:guide>
+        <bx:guide x="20" y="24" angle="90"></bx:guide>
+        <bx:guide x="20" y="25" angle="90"></bx:guide>
+        <bx:guide x="20" y="26" angle="90"></bx:guide>
+        <bx:guide x="20" y="27" angle="90"></bx:guide>
+        <bx:guide x="20" y="28" angle="90"></bx:guide>
+        <bx:guide x="20" y="29" angle="90"></bx:guide>
+        <bx:guide x="20" y="30" angle="90"></bx:guide>
+        <bx:guide x="20" y="31" angle="90"></bx:guide>
+        <bx:guide x="20" y="32" angle="90"></bx:guide>
+        <bx:guide x="20" y="33" angle="90"></bx:guide>
+        <bx:guide x="20" y="34" angle="90"></bx:guide>
+        <bx:guide x="20" y="35" angle="90"></bx:guide>
+        <bx:guide x="20" y="36" angle="90"></bx:guide>
+        <bx:guide x="20" y="37" angle="90"></bx:guide>
+        <bx:guide x="20" y="38" angle="90"></bx:guide>
+        <bx:guide x="20" y="39" angle="90"></bx:guide>
+        <bx:guide x="20" y="40" angle="90"></bx:guide>
+    </defs>
+</svg>

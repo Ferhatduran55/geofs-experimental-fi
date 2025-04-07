@@ -2,13 +2,18 @@
   "name": "@ferhatduran55/geofs-experimental-fi",
   "description": "Experimental flight interface for GeoFS Pilots.",
   "version": "0.7.13",
-  "main": "index.user.js",
-  "author": "Ferhatduran55",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/types/index.d.ts",
+      "@": "./src"
+    }
+  },
+  "types": "src/types/index.d.ts",
   "keywords": [
     "geo-fs",
     "geofs",
     "enhanced",
-    "experience",
     "enhancement",
     "enhancer",
     "pilot",
@@ -16,26 +21,16 @@
     "helper",
     "flight",
     "interface",
-    "experimental",
-    "features",
-    "improvement",
-    "improve",
-    "plane",
-    "aircraft",
-    "airplane",
-    "air",
-    "plane",
-    "flight",
-    "tampermonkey",
-    "userscript"
+    "experimental"
   ],
   "license": "MIT",
   "scripts": {
-    "dev": "vite build --minify=false && userscript-builder --mode dev",
-    "build": "vite build && userscript-builder --mode dev",
-    "release:patch": "vite build && userscript-builder --mode bugfix",
-    "release:minor": "vite build && userscript-builder --mode minor",
-    "release:major": "vite build && userscript-builder --mode major"
+    "test": "vitest",
+    "dev": "tsc && vite build --minify=false && userscript-builder --mode dev",
+    "build": "tsc && vite build && userscript-builder --mode dev",
+    "release:patch": "tsc && vite build && userscript-builder --mode bugfix",
+    "release:minor": "tsc && vite build && userscript-builder --mode minor",
+    "release:major": "tsc && vite build && userscript-builder --mode major"
   },
   "userscript": {
     "entry": "./dist/index.js",
@@ -48,7 +43,7 @@
       "namespace": "https://github.com/Ferhatduran55/geofs-experimental-fi",
       "homepage": "https://greasyfork.org/scripts/488227",
       "author": "Ferhatduran55",
-      "match": "https://www.geo-fs.com/geofs.php?v=3.7",
+      "match": "https://www.geo-fs.com/geofs.php?v=3.82",
       "supportURL": "https://greasyfork.org/scripts/488227/feedback",
       "downloadURL": "https://update.greasyfork.org/scripts/488227.user.js",
       "updateURL": "https://update.greasyfork.org/scripts/488227.meta.js",
@@ -65,19 +60,20 @@
     }
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.17",
-    "postcss": "^8.4.33",
-    "tailwindcss": "^3.4.1",
+    "@types/greasemonkey": "^4.0.7",
+    "autoprefixer": "^10.4.19",
+    "jsdom": "^24.1.0",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.5.3",
     "userscript-builder": "^0.4.0",
-    "vite": "^5.0.11",
-    "vite-plugin-solid": "^2.8.2"
+    "vite": "^5.3.3",
+    "vite-plugin-css-injected-by-js": "^3.5.1",
+    "vite-plugin-solid": "^2.10.2",
+    "vitest": "^1.6.0"
   },
   "dependencies": {
-    "solid-js": "^1.8.11",
-    "solid-sonner": "^0.2.5",
-    "vite-plugin-css-injected-by-js": "^3.4.0"
-  },
-  "exports": {
-    "@": "./src"
+    "solid-js": "^1.8.18",
+    "solid-sonner": "^0.2.8"
   }
 }
