@@ -4,7 +4,7 @@
 // @version      0.7.13
 // @description  Improve your plane with the interface that offers experimental features.
 // @author       Ferhatduran55
-// @match        https://www.geo-fs.com/geofs.php?v=3.7
+// @match        https://www.geo-fs.com/geofs.php?v=3.9
 // @grant        GM_addStyle
 // @grant        GM_setValue
 // @grant        GM_getValue
