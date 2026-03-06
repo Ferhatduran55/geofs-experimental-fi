@@ -1,3 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Orbitron font - embedded as base64 during build */
+@font-face {
+  font-family: "Orbitron";
+  src: url("../fonts/orbitron/Orbitron.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Orbitron display font for digital readouts */
+.orbitron-display {
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Override GeoFS default positioning for our assistant menu */
+.geofs-efi-list {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+}
+
+/* Custom scrollbar styling for assistant menu */
+.geofs-efi-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.geofs-efi-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.geofs-efi-list::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
+  border-radius: 3px;
+}

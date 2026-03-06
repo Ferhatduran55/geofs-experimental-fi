@@ -1,4 +1,7 @@
 import Reactive from "./Reactive";
+import Logger from "./Logger";
+
+const log = Logger.create("Props");
 
 class Props {
   static _reactive: Reactive;
@@ -28,11 +31,7 @@ class Props {
             if (!options.source.target || !options.source.prop) {
               throw new Error("Reactive props require a target and prop");
             }
-            Reactive.smartParse(
-              source.target,
-              source.prop,
-              options.source?.options
-            );
+            Reactive.smartParse(source.target, source.prop);
           }
 
           Object.defineProperty(this, name, {
@@ -42,7 +41,10 @@ class Props {
             set: function (newValue) {
               this._data[name] = newValue;
             },
+            configurable: true,
+            enumerable: true
           });
+          
           (this as any)[name] = {
             allowed: options.allowed || [],
             ignored: options.ignored || [],
@@ -54,6 +56,26 @@ class Props {
         reject(e);
       }
     });
+  }
+  static cleanup() {
+    log.debug("Starting cleanup...");
+    
+    if (this._reactive) {
+      Reactive.cleanup();
+    }
+    const propsToDelete = Object.keys(this._data);
+    log.debug("Properties to delete:", propsToDelete);
+    this._data = {};
+    for (const key of propsToDelete) {
+      try {
+        delete (this as any)[key];
+        log.debug(`Deleted property: ${key}`);
+      } catch (error) {
+        log.warn(`Could not delete property ${key}:`, error);
+      }
+    }
+    
+    log.debug("Cleanup completed");
   }
   [key: string]: PropOptions;
 }

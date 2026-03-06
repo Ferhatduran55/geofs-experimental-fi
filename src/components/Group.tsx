@@ -1,19 +1,47 @@
+import { Switch, Match, Suspense, For, Show } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import GroupRotation from "../assets/icons/GroupRotation";
-import { Switch, Match, Suspense, For } from "solid-js";
+import { Refresh } from "../assets/icons";
+import Logger from "../classes/Logger";
+
+const log = Logger.create("Group");
 
 const Summary = (props: any) => {
+  const handleReset = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (props.onReset && typeof props.onReset === 'function') {
+      props.onReset();
+    }
+  };
+
   return (
-    <summary class="flex items-center justify-between gap-2 p-2 font-medium marker:content-none hover:cursor-pointer">
-      <span class="flex gap-2">{props.title}</span>
-      <GroupRotation group-open={props.name} />
+    <summary class="flex items-center justify-between text-lg font-bold text-gray-900 dark:text-white cursor-pointer list-none outline-none select-none [&::-webkit-details-marker]:hidden">
+      <div class="flex items-center">
+        {props.icon && <Dynamic component={props.icon} />}
+        {props.title}
+      </div>
+      <div class="flex items-center gap-2">
+        <Show when={props.onReset}>
+          <button
+            type="button"
+            class="p-1 rounded-full hover:bg-gray-400/50 dark:hover:bg-gray-700/50 transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            title="Reset"
+            onclick={handleReset}
+          >
+            <Refresh class="w-5 h-5" />
+          </button>
+        </Show>
+        <GroupRotation />
+      </div>
     </summary>
   );
 };
 
 const Article = (props: any) => {
   return (
-    <article class="px-4 pb-4">
-      <ul class="flex flex-col gap-4 pl-2 mt-4" ref={props.reference}>
+    <div class={`p-4 rounded-lg space-y-4 ${props.className || "bg-gray-300/50 dark:bg-gray-900/70"}`}>
+      <ul class="flex flex-col gap-4" ref={props.reference}>
         <Suspense fallback={<div>{props.title} Loading...</div>}>
           <Switch>
             <Match when={props.resource?.loading}>
@@ -32,13 +60,13 @@ const Article = (props: any) => {
           </Switch>
         </Suspense>
       </ul>
-    </article>
+    </div>
   );
 };
 
 const Details = (props: any) => {
   return (
-    <details class={"group/" + props.name}>
+    <details class="group space-y-2" open>
       <Summary {...props} />
       <Article {...props} />
     </details>
@@ -57,6 +85,8 @@ export default (props: any) => {
     let icon = props.icon || true;
     let title = props.title || name;
     let reference = props.reference || null;
+    let className = props.className;
+    let onReset = props.onReset || null;
 
     return (
       <Details
@@ -65,10 +95,12 @@ export default (props: any) => {
         resource={resource}
         icon={icon}
         reference={reference}
+        className={className}
+        onReset={onReset}
       />
     );
   } catch (e) {
-    console.error(e);
+    log.error("Group validation failed:", e);
     return null;
   }
 };

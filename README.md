@@ -1,28 +1,30 @@
-# Experimental Flight Interface
+# GeoFS Flight Assistant
 
-This is a script that adds experimental features to the [GeoFS](https://www.geo-fs.com/)
+An advanced experimental flight interface for [GeoFS](https://www.geo-fs.com/), designed to enhance your simulation experience with powerful new systems, modern UI, and deeper control over your aircraft.
 
-## Features
+## ✨ Features
 
-- Aircraft features:
-  1. Configuring definitions.
-  2. Engine configuration.
-  3. Configuration of markers (control via interface not currently possible).
+- **Dynamic Fuel Management System:** Real-time fuel consumption based on engine thrust and RPM, with customizable capacities and burn rates.
+- **Advanced Aircraft Radar:** Monitor surrounding air traffic up to 100 NM, complete with altitude color-coding, sweep speeds, and callsign labels.
+- **Enhanced Aircraft Markers:** Easily identify yourself and other players with fully customizable marker colors and outlines.
+- **Modern User Interface:** A revamped, highly responsive UI with smooth animations, intuitive controls, and a dark/light mode adaptable design.
+- **Persistent Save System:** All your customizations, settings, and widget positions are safely stored locally and restored on every flight.
+- **Aircraft Configuration:** Deeper control and configuration capabilities over aircraft definitions and engines.
+- **Developer Options:** In-depth debugging tools and performance tracking capabilities.
 
-## Usage
+## 🚀 Installation & Usage
 
-To use this script, you need to install the [Tampermonkey](https://www.tampermonkey.net) add-on on your browser.
+To use this script, you will need a user script manager. We recommend [Tampermonkey](https://www.tampermonkey.net).
 
-Once you have installed the add-on, you can install the script by [clicking here](https://update.greasyfork.org/scripts/488227.user.js) and following the instructions.
+1. Install the Tampermonkey extension for your browser.
+2. [Click here](https://update.greasyfork.org/scripts/488227.user.js) to install the GeoFS Flight Assistant script.
+3. Open GeoFS and enjoy your enhanced flight experience!
 
-## Contributing
+*Note: Experimental features can be enabled/disabled from the new UI panel in the game.*
 
-To contribute to this project, please read the [CONTRIBUTING.md](docs/CONTRIBUTING.md) file.
+## 🤝 Contributing
 
-To contribute using Project IDX:
+Contributions are welcome! Please see our [Contributing Guidelines](.github/CONTRIBUTING.md) for details on how to get started, report bugs, or submit pull requests.
 
-[![Open in IDX](https://cdn.idx.dev/btn/open_purple_20.svg)](https://idx.google.com/import?url=https%3A%2F%2Fgithub.com%2FFerhatduran55%2Fgeofs-experimental-fi)
-
-> [!IMPORTANT]
-> This script is developed for experimental use only.
-> The owner or distributor of the code cannot be held responsible for any errors, damage or loss caused by the code. The use of the code is entirely at the user's own risk.
+> [!WARNING]
+> This script is an experimental, actively developed project. The owner or distributor cannot be held responsible for any errors, performance issues, or damages caused by the code. Use at your own risk.

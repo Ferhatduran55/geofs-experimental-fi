@@ -1,84 +1,67 @@
 import { createSignal } from "solid-js";
 import { getObjectFromPath } from "../utils/Misc";
+import Logger from "./Logger";
+
+const log = Logger.create("Reactive");
 
 class Reactive {
-  static _options: ReactiveOptions = {
-    cloneAfterCreation: false,
-    temp: {},
-  };
   static _cache: ReactiveCache = {};
+  
   static set cache(value) {
     this._cache = value;
   }
+  
   static get cache() {
     return this._cache;
   }
-  static set options(value) {
-    this._options = value;
-  }
-  static get options() {
-    return this._options;
-  }
-  static parse(target: any, propName: any, options: ParseOptions) {
+  
+  static parse(target: any, propName: any) {
     if (target[propName] === undefined) {
       throw new Error("Invalid path.");
     }
 
-    const [prop, setProp] = createSignal(target[propName]);
-    const cloneAfterCreation =
-      options?.cloneAfterCreation ?? this._options.cloneAfterCreation;
-
+    const originalValue = target[propName];
+    const [prop, setProp] = createSignal(originalValue);
+    const originalDescriptor = Object.getOwnPropertyDescriptor(target, propName);
+    
     Object.defineProperty(target, propName, {
       get: function () {
         return prop();
       },
       set: function (newValue) {
-        target[propName] = newValue;
         setProp(newValue);
+        if (originalDescriptor && originalDescriptor.set) {
+          originalDescriptor.set.call(this, newValue);
+        }
       },
+      configurable: true,
+      enumerable: true
     });
 
     if (Object.getOwnPropertyDescriptor(target, propName) === undefined) {
       throw new Error("Reactive property not created.");
     }
 
-    if (cloneAfterCreation) {
-      if (this._options.temp === null)
-        throw new Error("Temporary object not defined.");
-
-      if (this._cache[propName] !== undefined) {
-        throw new Error("Property already exists in cache. " + propName);
-      }
-
-      const [reactiveProp, setReactiveProp] = [prop, setProp];
-
-      this._cache[propName] = true;
-      Object.defineProperty(this._options.temp, propName, {
-        get: function () {
-          return reactiveProp();
-        },
-        set: function (newValue) {
-          setReactiveProp(newValue);
-        },
-      });
-    }
-
+    this._cache[propName] = true;
     return [prop, setProp];
   }
-  static smartParse(
-    target: string | object,
-    propName: string,
-    options: ParseOptions
-  ) {
+  
+  static smartParse(target: string | object, propName: string) {
     if (typeof target === "string" && typeof propName === "string") {
-      return this.parse(getObjectFromPath(target), propName, options);
+      return this.parse(getObjectFromPath(target), propName);
     } else if (typeof target === "object" && typeof propName === "string") {
-      return this.parse(target, propName, options);
+      return this.parse(target, propName);
     } else {
       throw new Error(
         "The target must be a string or an object. The property must be a string."
       );
     }
+  }
+  
+  static cleanup() {
+    log.debug("Starting cleanup, cache size:", Object.keys(this._cache).length);
+    this._cache = {};
+    log.debug("Cleanup completed");
   }
 }
 

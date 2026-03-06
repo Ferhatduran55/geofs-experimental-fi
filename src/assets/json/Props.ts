@@ -6,6 +6,9 @@ export default [
       reactive: true,
       reset: true,
       allowed: [
+        { name: "startupTime", type: "float" },
+        { name: "shutdownTime", type: "float" },
+        { name: "optionalAnimatedPartTravelTime", type: "float" },
         { name: "airbrakesTravelTime", type: "float" },
         { name: "accessoriesTravelTime", type: "float" },
         { name: "flapsTravelTime", type: "float" },
@@ -46,6 +49,7 @@ export default [
         prop: "engines",
       },
       reactive: true,
+      reset: true,
       allowed: [
         { name: "thrust", type: "int" },
         { name: "afterBurnerThrust", type: "int" },
@@ -60,6 +64,17 @@ export default [
         "symbol",
         "array",
       ],
+    },
+  },
+  {
+    name: "ExperimentalFeatures",
+    options: {
+      allowed: [
+        { name: "fuelSystem", type: "boolean", label: "Fuel Management System" },
+        { name: "aircraftMarkers", type: "boolean", label: "Special Aircraft Markers" },
+        { name: "aircraftRadar", type: "boolean", label: "Aircraft Radar" },
+      ],
+      ignored: [],
     },
   }
 ];

@@ -1,7 +1,7 @@
 {
   "name": "@ferhatduran55/geofs-experimental-fi",
   "description": "Experimental flight interface for GeoFS Pilots.",
-  "version": "0.7.13",
+  "version": "0.8.0",
   "type": "module",
   "exports": {
     ".": {
@@ -27,10 +27,12 @@
   "scripts": {
     "test": "vitest",
     "dev": "tsc && vite build --minify=false && userscript-builder --mode dev",
-    "build": "tsc && vite build && userscript-builder --mode dev",
-    "release:patch": "tsc && vite build && userscript-builder --mode bugfix",
-    "release:minor": "tsc && vite build && userscript-builder --mode minor",
-    "release:major": "tsc && vite build && userscript-builder --mode major"
+    "build": "tsc && vite build --minify=false && userscript-builder --mode dev",
+    "release:patch": "tsc && vite build --minify=false && userscript-builder --mode bugfix",
+    "release:minor": "tsc && vite build --minify=false && userscript-builder --mode minor",
+    "release:major": "tsc && vite build --minify=false && userscript-builder --mode major",
+    "fetch:geofs": "node scripts/fetch-geofs-version.js",
+    "fetch:geofs:check": "node scripts/fetch-geofs-version.js --check-only"
   },
   "userscript": {
     "entry": "./dist/index.js",
@@ -43,7 +45,7 @@
       "namespace": "https://github.com/Ferhatduran55/geofs-experimental-fi",
       "homepage": "https://greasyfork.org/scripts/488227",
       "author": "Ferhatduran55",
-      "match": "https://www.geo-fs.com/geofs.php?v=3.82",
+      "match": "https://www.geo-fs.com/geofs.php?v=3.9",
       "supportURL": "https://greasyfork.org/scripts/488227/feedback",
       "downloadURL": "https://update.greasyfork.org/scripts/488227.user.js",
       "updateURL": "https://update.greasyfork.org/scripts/488227.meta.js",
@@ -61,19 +63,23 @@
   },
   "devDependencies": {
     "@types/greasemonkey": "^4.0.7",
-    "autoprefixer": "^10.4.19",
-    "jsdom": "^24.1.0",
-    "postcss": "^8.4.39",
-    "tailwindcss": "^3.4.4",
-    "typescript": "^5.5.3",
+    "@types/node": "^22.13.5",
+    "autoprefixer": "^10.4.20",
+    "jsdom": "^24.1.3",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
     "userscript-builder": "^0.4.0",
-    "vite": "^5.3.3",
-    "vite-plugin-css-injected-by-js": "^3.5.1",
-    "vite-plugin-solid": "^2.10.2",
-    "vitest": "^1.6.0"
+    "vite": "^5.4.14",
+    "vite-plugin-css-injected-by-js": "^3.5.2",
+    "vite-plugin-solid": "^2.11.4",
+    "vite-plugin-worker": "^1.0.5",
+    "vitest": "^1.6.1"
   },
   "dependencies": {
-    "solid-js": "^1.8.18",
+    "@solid-primitives/promise": "^1.1.2",
+    "@solid-primitives/timer": "^1.4.2",
+    "solid-js": "^1.9.7",
     "solid-sonner": "^0.2.8"
   }
 }
