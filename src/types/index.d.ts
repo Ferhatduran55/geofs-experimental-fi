@@ -1,171 +1,5 @@
+/// <reference path="./geofs.d.ts" />
 declare global {
-  interface AircraftListItem {
-    community: number;
-    dir: string;
-    multiplayerFiles: string;
-    name: string;
-    path: string;
-  }
-
-  interface AircraftInstanceDefinition {
-    airbrakesTravelTime?: number;
-    accessoriesTravelTime?: number;
-    flapsTravelTime?: number;
-    flapsSteps?: number;
-    gearTravelTime?: number;
-    zeroThrustAltitude?: number;
-    zeroRPMAltitude?: number;
-    mass?: number;
-    minRPM?: number;
-    maxRPM?: number;
-  }
-
-  interface AircraftInstanceEngineItem {
-    thrust?: number;
-    afterBurnerThrust?: number;
-    reverseThrust?: number;
-  }
-  interface Geofs {
-    map: {
-      icons: {
-        url: string;
-        anchor: [number, number];
-        className: string;
-        size: [number, number];
-      };
-      planeMarker: any;
-      mapActive: any;
-      addPlayerMarker: (a: any, b: any, c: any) => any;
-    };
-    api: {
-      map: {
-        _map: any;
-        getIcon: (a: any, b: any) => any;
-        marker: any;
-      };
-    };
-    aircraft: {
-      instance: {
-        id: string;
-        definition?: AircraftInstanceDefinition;
-        engines?: AircraftInstanceEngineItem[];
-        llaLocation: [number, number, number];
-        htr: [number, number, number];
-        trueAirSpeed: number;
-        groundContact: boolean;
-        brakesOn: boolean;
-        engine: {
-          on: boolean;
-          rpm: number;
-        };
-        setup: () => void;
-        crash: () => void;
-      };
-    };
-    aircraftList: AircraftListItem[];
-    animation: {
-      values: {
-        [key: string]: any;
-      };
-      filter: (definition: any) => any;
-    };
-    camera: {
-      currentDefinition: any;
-      set: (mode: string) => void;
-    };
-    weather: any;
-  }
-
-  interface AnimationDefinition {
-    type: string; // e.g. 'rotate', 'show', 'hide', 'render'
-    value?: string; // animation value name (e.g. 'kias', 'fuelPercentage')
-    ratio?: number;
-    offset?: number;
-    min?: number;
-    max?: number;
-    function?: string; // stringified function used in GeoFS definitions (e.g. "{return ...}")
-    eq?: any;
-    notEq?: any;
-  }
-
-  interface OverlayDefinition {
-    url?: string;
-    class?: string;
-    anchor?: { x: number; y: number };
-    position?: { x: number; y: number };
-    size?: { x: number; y: number };
-    rescale?: boolean;
-    rescalePosition?: boolean;
-    animations?: AnimationDefinition[];
-    overlays?: OverlayDefinition[];
-    alignment?: { x?: string; y?: string };
-  }
-
-  interface InstrumentDefinition {
-    name: string;
-    container?: string;
-    stackX?: boolean;
-    stackY?: boolean;
-    group?: string;
-    compositors?: string;
-    visibility?: boolean;
-    cockpit?: {
-      position: { x: number; y: number; z: number };
-      scale: number;
-    };
-    animations?: AnimationDefinition[];
-    overlay?: OverlayDefinition;
-    onInit?: () => void;
-    onDestroy?: () => void;
-    onUpdate?: () => void;
-    onShow?: () => void;
-    onHide?: () => void;
-  }
-
-  interface Indicator {
-    definition?: InstrumentDefinition;
-    overlay?: {
-      position?: { x: number; y: number };
-      size?: { x: number; y: number };
-      anchor?: { x: number; y: number };
-      rotation?: number;
-      opacity?: number;
-      scaleAndPlace?: (a?: any, b?: any, c?: any) => void;
-      setOpacity?: (n: number) => void;
-    };
-    visibility?: boolean;
-    show?: () => void;
-    hide?: () => void;
-    destroy?: () => void;
-    update?: (delta: any) => void;
-    scale?: () => void;
-    updateCockpitPosition?: () => void;
-  }
-
-  interface Instruments {
-    list: { [key: string]: Indicator };
-    definitions: { [key: string]: InstrumentDefinition };
-    containers?: { [key: string]: HTMLElement };
-    groups?: { [key: string]: { [key: string]: Indicator } };
-    init: (list?: Record<string, string>) => void;
-    update: (deltaTime?: number) => void;
-    show: (group?: string) => void;
-    hide: (group?: string) => void;
-    rescale?: () => void;
-    reset?: () => void;
-    updateScreenPositions?: () => void;
-    updateCockpitPositions?: () => void;
-    defaultMargin?: number;
-    stackPosition?: { x: number; y: number };
-  }
-
-  interface Multiplayer {
-    users: any;
-  }
-
-  interface UI {
-    playerMarkers: any;
-  }
 
   interface Observer<T = any> {
     update(data: T): void;
@@ -186,8 +20,8 @@ declare global {
   }
 
   declare class Aircraft {
-    static aircrafts: Geofs["aircraftList"];
-    static _instance: Geofs["aircraft"]["instance"];
+    static aircrafts: typeof geofs.aircraftList;
+    static _instance: typeof geofs.aircraft.instance;
     get instance(): any;
     set instance(value: any);
     static refresh(): void;
@@ -275,10 +109,7 @@ declare global {
     static _is(object: any, type: any): boolean;
   }
 
-  var geofs: Geofs;
-  var instruments: Instruments;
-  var multiplayer: Multiplayer;
-  var ui: UI;
+
   var flightAssistant: ExperimentalFlightInterface.APP;
 
   interface UserInterface {
@@ -432,7 +263,7 @@ declare namespace ExperimentalFlightInterface {
   }
 }
 
-interface AppStatus extends ExperimentalFlightInterface.Status {}
+interface AppStatus extends ExperimentalFlightInterface.Status { }
 
 declare module "solid-js" {
   namespace JSX {
@@ -442,4 +273,4 @@ declare module "solid-js" {
     }
   }
 }
-export {};
+export { };

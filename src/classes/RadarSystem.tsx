@@ -53,11 +53,11 @@ class RadarSystem {
   static isActive: boolean = false;
   static settings: RadarSettings = { ...DEFAULT_SETTINGS };
   static targets: Map<string, RadarTarget> = new Map();
-  
+
   // Animation
   static sweepAngle: number = 0;
   static lastSweepTime: number = 0;
-  
+
   // Intervals
   static updateInterval: number | null = null;
   static sweepInterval: number | null = null;
@@ -65,8 +65,8 @@ class RadarSystem {
   // ============================================
   // INSTRUMENT DEFINITION (used by InstrumentManager)
   // ============================================
-  
-  static getInstrumentDefinition(): InstrumentDefinition {
+
+  static getInstrumentDefinition(): InstrumentDef {
     return {
       name: RADAR_INSTRUMENT_NAME,
       container: ".geofs-instruments-container",
@@ -357,7 +357,7 @@ class RadarSystem {
 
     // Use InstrumentManager for instrument lifecycle
     InstrumentManager.init();
-    
+
     if (!InstrumentManager.isActive(RADAR_INSTRUMENT_NAME)) {
       InstrumentManager.registerDefinition(this.getInstrumentDefinition());
       InstrumentManager.activateInstrument(RADAR_INSTRUMENT_NAME);
@@ -375,7 +375,7 @@ class RadarSystem {
 
     this.stopUpdating();
     this.targets.clear();
-    
+
     // Just hide, don't destroy
     InstrumentManager.hide(RADAR_INSTRUMENT_NAME);
 
@@ -426,7 +426,7 @@ class RadarSystem {
     const now = Date.now();
     const elapsed = Math.min((now - this.lastSweepTime) / 1000, 0.1);
     const degreesPerSecond = 360 / this.settings.sweepSpeed;
-    
+
     this.sweepAngle = (this.sweepAngle + elapsed * degreesPerSecond) % 360;
     this.lastSweepTime = now;
 
@@ -572,7 +572,7 @@ class RadarSystem {
 
       const [targetLat, targetLon, targetAlt = 0] = coords;
       const distance = this.calculateDistance(ownLat, ownLon, targetLat, targetLon);
-      
+
       if (distance > rangeMeters) continue;
 
       const absoluteBearing = this.calculateBearing(ownLat, ownLon, targetLat, targetLon);

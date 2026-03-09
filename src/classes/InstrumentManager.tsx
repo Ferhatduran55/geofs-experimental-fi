@@ -4,7 +4,7 @@ const log = Logger.create("InstrumentManager");
 
 
 interface RegisteredInstrument {
-  definition: InstrumentDefinition; // from src/types/index.d.ts
+  definition: InstrumentDef; // from src/types/index.d.ts
   indicator: Indicator | null;
   isActive: boolean;
 }
@@ -82,9 +82,9 @@ class InstrumentManager {
   /**
    * Register an instrument definition in GeoFS's instruments.definitions
    */
-  static registerDefinition(definition: InstrumentDefinition): boolean {
+  static registerDefinition(definition: InstrumentDef): boolean {
     const instruments = (unsafeWindow as any).instruments;
-    
+
     if (!instruments?.definitions) {
       log.error("instruments.definitions not available");
       return false;
@@ -134,7 +134,7 @@ class InstrumentManager {
    */
   static activateInstrument(name: string): boolean {
     const instruments = (unsafeWindow as any).instruments;
-    
+
     if (!instruments) {
       log.error("GeoFS instrument system not available");
       return false;
@@ -192,16 +192,16 @@ class InstrumentManager {
           compositors: registered.definition.compositors || "css",
           overlay: registered.definition.overlay,
         };
-        
+
         // Add animations if defined
         if (registered.definition.animations) {
           geofsDefinition.animations = registered.definition.animations;
         }
-        
+
         if (registered.definition.visibility !== undefined) {
           geofsDefinition.visibility = registered.definition.visibility;
         }
-        
+
         instruments.definitions[name] = geofsDefinition;
         log.debug(`Ensured definition exists: ${name}`);
       }
@@ -373,7 +373,7 @@ class InstrumentManager {
    */
   static unregister(name: string): void {
     this.deactivateInstrument(name);
-    
+
     const instruments = (unsafeWindow as any).instruments;
     if (instruments?.definitions?.[name]) {
       delete instruments.definitions[name];
@@ -410,7 +410,7 @@ class InstrumentManager {
    */
   static cleanup(): void {
     const instruments = (unsafeWindow as any).instruments;
-    
+
     // Deactivate all instruments first
     for (const name of this.registeredInstruments.keys()) {
       this.deactivateInstrument(name);

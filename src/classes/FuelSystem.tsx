@@ -32,28 +32,28 @@ class FuelSystem {
   static currentFuelGal: number = 0;
   static consumptionRateGalPerSec: number = 0;
   static smoothedConsumptionGalPerSec: number = 0;
-  
+
   // Constants
   static readonly KG_TO_GAL: number = 0.330215;
-  
+
   // Aircraft tracking
   static lastAircraftMassKg: number | null = null;
   static currentAircraftId: number = -1;
   static lastUpdateTime: number = 0;
-  
+
   // Flags
   static isInitializing: boolean = false;
   static creatingGauge: boolean = false;
   static isHooked: boolean = false;
-  
+
   // Hooks
   static originalFlightTick: ((e: number, t: number, a: number) => void) | null = null;
   static saveIntervalId: number | null = null;
-  
+
   // Settings
   static capacityMultiplier: number = 0.6349575;
   static consumptionMultiplier: number = 0.05;
-  
+
   static STORAGE_KEYS = {
     fuelPercentage: "fuel_system_percentage",
     aircraftId: "fuel_system_aircraft_id",
@@ -66,7 +66,7 @@ class FuelSystem {
   // INSTRUMENT DEFINITION
   // ============================================
 
-  static getInstrumentDefinition(): InstrumentDefinition {
+  static getInstrumentDefinition(): InstrumentDef {
     const fuelFaceSVG = this.createFuelFaceSVG();
     const serializer = new XMLSerializer();
     const svgString = serializer.serializeToString(fuelFaceSVG);
@@ -169,7 +169,7 @@ class FuelSystem {
 
       if (typeof savedCapacity === 'number') this.capacityMultiplier = savedCapacity;
       if (typeof savedConsumption === 'number') this.consumptionMultiplier = savedConsumption;
-      
+
       log.debug("Loaded settings:", { capacityMultiplier: this.capacityMultiplier, consumptionMultiplier: this.consumptionMultiplier });
     } catch (error) {
       log.error("Failed to load settings:", error);
@@ -255,7 +255,7 @@ class FuelSystem {
   static recalculateCapacity(): void {
     const aircraft = unsafeWindow.geofs?.aircraft?.instance;
     if (!aircraft) return;
-    
+
     const aircraftMass = aircraft.definition?.mass || 1000;
     const oldPercentage = this.fuelPercentage;
     this.fuelCapacityGal = aircraftMass * this.capacityMultiplier * this.KG_TO_GAL;
@@ -288,7 +288,7 @@ class FuelSystem {
 
       const aircraftMass = aircraft.definition?.mass || 1000;
       this.lastAircraftMassKg = aircraftMass;
-  
+
       await this.loadSettings();
       this.fuelCapacityGal = aircraftMass * this.capacityMultiplier * this.KG_TO_GAL;
 
@@ -330,7 +330,7 @@ class FuelSystem {
     }
 
     const hasEngines = aircraft?.engines && Array.isArray(aircraft.engines) && aircraft.engines.length > 0;
-    
+
     if (!hasEngines) {
       log.debug("No engines, skipping activation");
       return;
@@ -342,7 +342,7 @@ class FuelSystem {
       await this.loadSettings();
       this.fuelCapacityGal = aircraftMass * this.capacityMultiplier * this.KG_TO_GAL;
       this.currentAircraftId = aircraft.id || 0;
-      
+
       const savedState = await this.loadFuelState();
       this.fuelPercentage = savedState.percentage;
       this.currentFuelGal = (this.fuelCapacityGal * savedState.percentage) / 100;
@@ -351,17 +351,17 @@ class FuelSystem {
 
     this.isActive = true;
     this.saveFuelState();
-    
+
     // Use InstrumentManager
     InstrumentManager.init();
-    
+
     if (!InstrumentManager.isActive(FUEL_INSTRUMENT_NAME)) {
       InstrumentManager.registerDefinition(this.getInstrumentDefinition());
       InstrumentManager.activateInstrument(FUEL_INSTRUMENT_NAME);
     } else {
       InstrumentManager.show(FUEL_INSTRUMENT_NAME);
     }
-    
+
     this.startMonitoring();
     log.info("Fuel system activated");
   }
@@ -371,20 +371,20 @@ class FuelSystem {
 
     this.isActive = false;
     this.unhookFlightTick();
-    
+
     if (this.saveIntervalId !== null) {
       clearInterval(this.saveIntervalId);
       this.saveIntervalId = null;
     }
-    
+
     const aircraft = unsafeWindow.geofs?.aircraft?.instance;
     if (aircraft && aircraft.crashed) {
       aircraft.crashed = false;
     }
-    
+
     // Just hide, don't destroy
     InstrumentManager.hide(FUEL_INSTRUMENT_NAME);
-    
+
     this.saveFuelState();
     log.info("Fuel system deactivated");
   }
@@ -399,7 +399,7 @@ class FuelSystem {
 
   static startMonitoring(): void {
     this.hookFlightTick();
-    
+
     if (this.saveIntervalId !== null) {
       clearInterval(this.saveIntervalId);
     }
@@ -411,7 +411,7 @@ class FuelSystem {
 
   static hookFlightTick(): void {
     if (this.isHooked) return;
-    
+
     const flight = (unsafeWindow as any).flight;
     if (!flight || typeof flight.tick !== 'function') {
       log.warn("flight.tick not found, retrying...");
@@ -420,9 +420,9 @@ class FuelSystem {
     }
 
     this.originalFlightTick = flight.tick.bind(flight);
-    
+
     const self = this;
-    flight.tick = function(e: number, t: number, a: number) {
+    flight.tick = function (e: number, t: number, a: number) {
       if (self.originalFlightTick) {
         self.originalFlightTick(e, t, a);
       }
@@ -430,20 +430,20 @@ class FuelSystem {
         self.tickUpdate(e);
       }
     };
-    
+
     this.isHooked = true;
     log.debug("Hooked into flight.tick");
   }
 
   static unhookFlightTick(): void {
     if (!this.isHooked) return;
-    
+
     const flight = (unsafeWindow as any).flight;
     if (flight && this.originalFlightTick) {
       flight.tick = this.originalFlightTick;
       this.originalFlightTick = null;
     }
-    
+
     this.isHooked = false;
   }
 
@@ -482,7 +482,7 @@ class FuelSystem {
 
     const aircraft = geofs?.aircraft?.instance;
     if (!aircraft) return;
-    
+
     if (!aircraft.engines || !Array.isArray(aircraft.engines) || aircraft.engines.length === 0) {
       return;
     }
@@ -510,7 +510,7 @@ class FuelSystem {
       const consumedFuel = this.consumptionRateGalPerSec * deltaTime;
       this.currentFuelGal = Math.max(0, this.currentFuelGal - consumedFuel);
       this.fuelPercentage = (this.currentFuelGal / this.fuelCapacityGal) * 100;
-      
+
       if (aircraft.crashed) {
         aircraft.crashed = false;
       }
@@ -543,12 +543,12 @@ class FuelSystem {
     percentage = Math.max(0, Math.min(100, percentage));
     this.fuelPercentage = percentage;
     this.currentFuelGal = (this.fuelCapacityGal * percentage) / 100;
-    
+
     const aircraft = unsafeWindow.geofs?.aircraft?.instance;
     if (aircraft && this.fuelPercentage > 0 && aircraft.crashed) {
       aircraft.crashed = false;
     }
-    
+
     this.saveFuelState();
     this.updateAnimationValues();
   }
@@ -574,7 +574,7 @@ class FuelSystem {
   static createFuelIndicator(): void {
     if (this.gaugeExists() || this.creatingGauge) return;
     this.creatingGauge = true;
-    
+
     try {
       const aircraft = unsafeWindow.geofs?.aircraft?.instance;
       if (!aircraft || !aircraft.engines?.length) {
@@ -589,7 +589,7 @@ class FuelSystem {
 
       InstrumentManager.init();
       InstrumentManager.registerDefinition(this.getInstrumentDefinition());
-      
+
       if (InstrumentManager.activateInstrument(FUEL_INSTRUMENT_NAME)) {
         this.updateAnimationValues();
         log.debug("Fuel indicator created");
@@ -630,14 +630,14 @@ class FuelSystem {
     const createArcPath = (startPercent: number, endPercent: number, r: number): string => {
       const startAngle = percentToAngle(startPercent) * Math.PI / 180;
       const endAngle = percentToAngle(endPercent) * Math.PI / 180;
-      
+
       const x1 = cx + r * Math.cos(startAngle);
       const y1 = cy + r * Math.sin(startAngle);
       const x2 = cx + r * Math.cos(endAngle);
       const y2 = cy + r * Math.sin(endAngle);
-      
+
       const largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0;
-      
+
       return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
     };
 
@@ -652,32 +652,32 @@ class FuelSystem {
     for (let percent = 0; percent <= 100; percent += 2) {
       const angle = percentToAngle(percent) * Math.PI / 180;
       const isMajor = percent % 10 === 0;
-      
+
       const outerRadius = radius - arcWidth / 2 - 2;
       const innerRadius = isMajor ? outerRadius - 10 : outerRadius - 4;
-      
+
       const x1 = cx + innerRadius * Math.cos(angle);
       const y1 = cy + innerRadius * Math.sin(angle);
       const x2 = cx + outerRadius * Math.cos(angle);
       const y2 = cy + outerRadius * Math.sin(angle);
-      
+
       const strokeWidth = isMajor ? 3 : 1;
       const strokeColor = isMajor ? "#ffffff" : "#aaaaaa";
-      
+
       svgContent += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
     }
-    
+
     // Labels
     for (let percent = 0; percent <= 100; percent += 10) {
       const angle = percentToAngle(percent) * Math.PI / 180;
       const labelRadius = radius - arcWidth / 2 - 22;
       const x = cx + labelRadius * Math.cos(angle);
       const y = cy + labelRadius * Math.sin(angle);
-      
+
       let label = String(percent);
       if (percent === 0) label = "E";
       else if (percent === 100) label = "F";
-      
+
       svgContent += `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-size="12" font-family="Arial" font-weight="bold" transform="rotate(-270 ${x} ${y})">${label}</text>`;
     }
 
@@ -694,14 +694,14 @@ class FuelSystem {
     const innerCirc = (2 * Math.PI * innerR).toFixed(3);
     const tickOuterR = innerR + 8;
     const frameR = tickOuterR + 2;
-    
+
     svgContent += `<circle cx="${centerX}" cy="${centerY}" r="${frameR}" fill="none" stroke="#333" stroke-width="2"/>`;
     svgContent += `<circle cx="${centerX}" cy="${centerY}" r="${innerR}" fill="none" stroke="#00ff88" stroke-width="3" stroke-linecap="round" transform="rotate(-90 ${centerX} ${centerY})" stroke-dasharray="${innerCirc}" stroke-dashoffset="${innerCirc}"/>`;
-    
+
     for (let i = 0; i <= 14; i++) {
       const value = i * 0.2;
       const isMajor = Math.abs(value - Math.round(value)) < 1e-6 && (value === 0 || value === 1 || value === 2);
-      
+
       const angleDeg = (value * 120) - 90;
       const angle = (angleDeg * Math.PI) / 180;
       const outerR = innerR + 6;
@@ -710,9 +710,9 @@ class FuelSystem {
       const y1 = centerY + outerR * Math.sin(angle);
       const x2 = centerX + innerTickR * Math.cos(angle);
       const y2 = centerY + innerTickR * Math.sin(angle);
-      
+
       svgContent += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffffff" stroke-width="${isMajor ? 2 : 1}"/>`;
-      
+
       if (isMajor) {
         const lx = centerX + (innerTickR - 8) * Math.cos(angle);
         const ly = centerY + (innerTickR - 8) * Math.sin(angle) + 2;
@@ -740,7 +740,7 @@ class FuelSystem {
 
   static cleanup(removeUI: boolean = true): void {
     this.unhookFlightTick();
-    
+
     if (this.saveIntervalId !== null) {
       clearInterval(this.saveIntervalId);
       this.saveIntervalId = null;
@@ -756,7 +756,7 @@ class FuelSystem {
 
     if (removeUI) {
       InstrumentManager.deactivateInstrument(FUEL_INSTRUMENT_NAME);
-      
+
       const geofs = unsafeWindow.geofs;
       if (geofs?.animation?.values) {
         delete (geofs.animation as any).values.fuelPercentage;

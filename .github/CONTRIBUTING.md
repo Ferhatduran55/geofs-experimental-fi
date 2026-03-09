@@ -1,6 +1,6 @@
-# Contributing to GeoFS Flight Assistant
+# Contributing to GeoFS Experimental Flight Interface
 
-Thank you for your interest in contributing to GeoFS Flight Assistant! We welcome contributions from the community to help improve the project.
+Thank you for your interest in contributing to GeoFS Experimental Flight Interface! We welcome contributions from the community to help improve the project.
 
 ## Getting Started
 

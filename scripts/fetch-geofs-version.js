@@ -84,11 +84,11 @@ function extractScriptUrls(html) {
   const scriptPattern = /<script[^>]+src=["']([^"']+)["'][^>]*>/gi;
   const scripts = [];
   let match;
-  
+
   while ((match = scriptPattern.exec(html)) !== null) {
     scripts.push(match[1]);
   }
-  
+
   return scripts;
 }
 
@@ -98,16 +98,16 @@ function extractScriptUrls(html) {
 async function getGeoFSVersion() {
   logSection('Fetching GeoFS Home Page');
   log(`URL: ${GEOFS_HOME_URL}`, 'blue');
-  
+
   // First, fetch the home page to find the current version redirect
   const { data: homeHtml, statusCode: homeStatus } = await fetchUrl(GEOFS_HOME_URL);
-  
+
   if (homeStatus !== 200) {
     throw new Error(`Failed to fetch GeoFS home page: HTTP ${homeStatus}`);
   }
-  
+
   log(`✓ Home page fetched (${homeHtml.length} bytes)`, 'green');
-  
+
   // Try to find version from home page links
   let geofsVersion = null;
   const versionFromUrl = homeHtml.match(VERSION_PATTERNS.urlParam);
@@ -115,49 +115,49 @@ async function getGeoFSVersion() {
     geofsVersion = versionFromUrl[1];
     log(`✓ Found version from URL: ${geofsVersion}`, 'green');
   }
-  
+
   // Now fetch the actual geofs page (with or without version)
-  const geofsUrl = geofsVersion 
-    ? `${GEOFS_BASE_URL}?v=${geofsVersion}` 
+  const geofsUrl = geofsVersion
+    ? `${GEOFS_BASE_URL}?v=${geofsVersion}`
     : GEOFS_BASE_URL;
-  
+
   logSection('Fetching GeoFS Simulator Page');
   log(`URL: ${geofsUrl}`, 'blue');
-  
+
   const { data: html, statusCode } = await fetchUrl(geofsUrl);
-  
+
   if (statusCode !== 200) {
     throw new Error(`Failed to fetch GeoFS page: HTTP ${statusCode}`);
   }
-  
+
   log(`✓ Page fetched successfully (${html.length} bytes)`, 'green');
-  
+
   // Extract versions from various sources
   const versions = {
     urlVersion: geofsVersion,
     scriptVersion: null,
     buildVersion: null
   };
-  
+
   // Try to find script version (kc parameter)
   const scriptVersionMatch = html.match(VERSION_PATTERNS.scriptVersion);
   if (scriptVersionMatch) {
     versions.scriptVersion = scriptVersionMatch[1];
     log(`✓ Found script version (build): ${versions.scriptVersion}`, 'green');
   }
-  
+
   // Try to find app version in script content
   const appVersionMatch = html.match(VERSION_PATTERNS.appVersion);
   if (appVersionMatch) {
     versions.buildVersion = appVersionMatch[1];
   }
-  
+
   // Extract all script URLs
   const scripts = extractScriptUrls(html);
-  
+
   // Find main geofs script
   const geofsScript = scripts.find(s => s.includes('geofs.js'));
-  
+
   return {
     version: geofsVersion || 'unknown',
     scriptBuild: versions.scriptVersion || 'unknown',
@@ -172,21 +172,21 @@ async function getGeoFSVersion() {
  * Fetch GeoFS main script
  */
 async function fetchGeoFSScript(scriptPath) {
-  const scriptUrl = scriptPath.startsWith('http') 
-    ? scriptPath 
+  const scriptUrl = scriptPath.startsWith('http')
+    ? scriptPath
     : new URL(scriptPath, GEOFS_HOME_URL).href;
-  
+
   logSection('Fetching GeoFS Script');
   log(`URL: ${scriptUrl}`, 'blue');
-  
+
   const { data, statusCode } = await fetchUrl(scriptUrl);
-  
+
   if (statusCode !== 200) {
     throw new Error(`Failed to fetch script: HTTP ${statusCode}`);
   }
-  
+
   log(`✓ Script fetched successfully (${data.length} bytes)`, 'green');
-  
+
   return data;
 }
 
@@ -200,7 +200,7 @@ function analyzeGeoFSScript(script) {
     mapProviders: [],
     features: []
   };
-  
+
   // Extract aircraft list references
   const aircraftPattern = /aircraftList\s*[=:]\s*\[([^\]]+)\]/g;
   let match;
@@ -210,7 +210,7 @@ function analyzeGeoFSScript(script) {
       info.aircraftIds.push(...ids.map(id => id.replace(/["']/g, '')));
     }
   }
-  
+
   // Extract API endpoints
   const apiPattern = /["']((?:https?:)?\/\/[^"']+(?:api|geofs|geo-fs)[^"']*)["']/gi;
   while ((match = apiPattern.exec(script)) !== null) {
@@ -218,7 +218,7 @@ function analyzeGeoFSScript(script) {
       info.apiEndpoints.push(match[1]);
     }
   }
-  
+
   // Check for features
   const features = [
     { name: 'multiplayer', pattern: /multiplayer/i },
@@ -227,31 +227,31 @@ function analyzeGeoFSScript(script) {
     { name: 'instruments', pattern: /instruments/i },
     { name: 'terrain', pattern: /terrain|elevation/i },
   ];
-  
+
   features.forEach(f => {
     if (f.pattern.test(script)) {
       info.features.push(f.name);
     }
   });
-  
+
   return info;
 }
 
 /**
  * Save script to file
  */
-function saveScript(script, outputPath, version) {
+function saveScript(script, outputPath, version, geofsUrl) {
   const header = `/**
  * GeoFS Script - Version ${version}
  * Fetched: ${new Date().toISOString()}
- * Source: ${GEOFS_URL}
+ * Source: ${geofsUrl}
  * 
  * WARNING: This file is for analysis purposes only.
  * Do not distribute or use for commercial purposes.
  */
 
 `;
-  
+
   fs.writeFileSync(outputPath, header + script);
   log(`✓ Script saved to: ${outputPath}`, 'green');
 }
@@ -264,62 +264,62 @@ async function main() {
   const checkOnly = args.includes('--check-only');
   const outputIndex = args.indexOf('--output');
   const outputFile = outputIndex !== -1 ? args[outputIndex + 1] : null;
-  
+
   console.log();
   log('╔════════════════════════════════════════╗', 'cyan');
   log('║     GeoFS Version Fetcher v1.1.0       ║', 'cyan');
   log('╚════════════════════════════════════════╝', 'cyan');
-  
+
   try {
     // Get version info
     const { version, scriptBuild, scripts, geofsScript, geofsUrl } = await getGeoFSVersion();
-    
+
     logSection('Version Information');
     log(`GeoFS App Version: ${version}`, 'bright');
     log(`Script Build: ${scriptBuild}`, 'bright');
     log(`Simulator URL: ${geofsUrl}`, 'yellow');
     log(`Scripts found: ${scripts.length}`, 'yellow');
-    
+
     if (geofsScript) {
       log(`Main script: ${geofsScript}`, 'yellow');
     }
-    
+
     // List all scripts
     logSection('Script Files');
     scripts.forEach((script, i) => {
       const isMain = script.includes('geofs.js');
       log(`  ${i + 1}. ${script}${isMain ? ' ← Main' : ''}`, isMain ? 'green' : 'reset');
     });
-    
+
     if (checkOnly) {
       logSection('Check Complete');
       log('Use without --check-only to download the script', 'yellow');
       return;
     }
-    
+
     // Fetch main script
     if (geofsScript) {
       const script = await fetchGeoFSScript(geofsScript);
-      
+
       // Analyze script
       logSection('Script Analysis');
       const analysis = analyzeGeoFSScript(script);
       log(`API Endpoints: ${analysis.apiEndpoints.length}`, 'yellow');
       log(`Features detected: ${analysis.features.join(', ')}`, 'yellow');
-      
+
       // Create version string for filename
       const versionStr = version !== 'unknown' ? version : scriptBuild;
-      
+
       // Save if output specified
       if (outputFile) {
         const outputPath = path.resolve(process.cwd(), outputFile);
-        saveScript(script, outputPath, versionStr);
+        saveScript(script, outputPath, versionStr, geofsUrl);
       } else {
         // Default output
         const defaultOutput = path.join(__dirname, '..', `geofs-v${versionStr}.js`);
-        saveScript(script, defaultOutput, versionStr);
+        saveScript(script, defaultOutput, versionStr, geofsUrl);
       }
-      
+
       // Save analysis
       const analysisPath = path.join(__dirname, '..', `geofs-v${versionStr}-analysis.json`);
       fs.writeFileSync(analysisPath, JSON.stringify({
@@ -332,10 +332,10 @@ async function main() {
       }, null, 2));
       log(`✓ Analysis saved to: ${analysisPath}`, 'green');
     }
-    
+
     logSection('Complete');
     log('GeoFS version fetch completed successfully!', 'green');
-    
+
   } catch (error) {
     logSection('Error');
     log(`✗ ${error.message}`, 'red');

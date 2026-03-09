@@ -1,4 +1,4 @@
-# GeoFS Flight Assistant
+# GeoFS Experimental Flight Interface
 
 An advanced experimental flight interface for [GeoFS](https://www.geo-fs.com/), designed to enhance your simulation experience with powerful new systems, modern UI, and deeper control over your aircraft.
 
@@ -17,7 +17,7 @@ An advanced experimental flight interface for [GeoFS](https://www.geo-fs.com/), 
 To use this script, you will need a user script manager. We recommend [Tampermonkey](https://www.tampermonkey.net).
 
 1. Install the Tampermonkey extension for your browser.
-2. [Click here](https://update.greasyfork.org/scripts/488227.user.js) to install the GeoFS Flight Assistant script.
+2. [Click here](https://update.greasyfork.org/scripts/488227.user.js) to install the GeoFS Experimental Flight Interface script.
 3. Open GeoFS and enjoy your enhanced flight experience!
 
 *Note: Experimental features can be enabled/disabled from the new UI panel in the game.*
