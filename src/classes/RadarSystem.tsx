@@ -376,8 +376,9 @@ class RadarSystem {
     this.stopUpdating();
     this.targets.clear();
 
-    // Just hide, don't destroy
-    InstrumentManager.hide(RADAR_INSTRUMENT_NAME);
+    // Remove the radar from the managed layout so the remaining gauges can
+    // immediately reclaim its slot.
+    InstrumentManager.deactivateInstrument(RADAR_INSTRUMENT_NAME);
 
     this.isActive = false;
     log.info("Radar system deactivated");

@@ -382,8 +382,10 @@ class FuelSystem {
       aircraft.crashed = false;
     }
 
-    // Just hide, don't destroy
-    InstrumentManager.hide(FUEL_INSTRUMENT_NAME);
+    // Remove the gauge from the managed layout. Keeping a hidden Indicator in
+    // GeoFS's list leaves a stale stack slot and can make it overlap the radar
+    // when the fuel system is enabled again.
+    InstrumentManager.deactivateInstrument(FUEL_INSTRUMENT_NAME);
 
     this.saveFuelState();
     log.info("Fuel system deactivated");
