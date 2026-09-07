@@ -179,6 +179,28 @@ declare global {
   type InputType = 'int' | 'float' | 'number' | 'range' | 'color' | 'boolean' | 'text';
   type InputNotifyMode = 'input' | 'apply' | 'both' | 'none';
 
+  // Modal component types
+  type ModalType = "default" | "success" | "warning" | "error" | "info";
+  type ModalPosition = "center" | "top" | "bottom" | "top-right" | "bottom-right";
+
+  interface ModalButton {
+    text: string;
+    onClick: () => void;
+    style?: "primary" | "secondary" | "danger" | "ghost";
+  }
+
+  interface ModalProps {
+    title?: string;
+    content: string | HTMLElement; // Can be raw text or HTML string
+    type?: ModalType;
+    position?: ModalPosition;
+    overlay?: boolean;
+    buttons?: ModalButton[];
+    icon?: string; // HTML string or path to icon or emoji
+    width?: string; // e.g. "max-w-md", "max-w-xl", "w-full"
+    duration?: number; // Auto close after ms
+  }
+
   interface InputRef {
     reset(): void;
     resetToDefault(): void;
@@ -207,6 +229,7 @@ declare global {
     variant?: 'default' | 'compact' | 'small' | 'wide';
     ref?: (r: InputRef) => void;
     disabled?: boolean;
+    placeholder?: string;
     ariaLabel?: string;
   }
 
@@ -236,6 +259,91 @@ declare global {
     name: string;
     data: Record<string, any>;
   }
+
+  // Transport and Career types
+  type TransportType = "passenger" | "cargo";
+
+  interface TransportPayload {
+    type: TransportType;
+    amount: number;
+    maxCapacity: number;
+  }
+
+  interface FlightScore {
+    baseIncome: number;
+    flightTimeBonus: number;
+    smoothnessBonus: number;
+    landingPenalty: number;
+    totalIncome: number;
+    rating: string;
+  }
+
+  interface TransportMission {
+    id: string;
+    destination: string;
+    distanceNm: number;
+    payload: TransportPayload;
+    totalReward: number;
+    timeLimitMs: number;
+    isAccepted: boolean;
+  }
+
+  // Market types
+  interface MarketRates {
+    passenger: number; // rate per NM per pax
+    cargo: number;     // rate per NM per kg
+    fuel: number;      // rate per gallon
+  }
+
+  interface MarketTrendPoint {
+    hour: number;
+    rates: MarketRates;
+  }
+
+  declare class Market {
+    static seed: string;
+    static init(seed?: string): void;
+    static getCurrentRates(): MarketRates;
+    static getRatesForTime(date: Date): MarketRates;
+    static getTodaysTrend(): MarketTrendPoint[];
+  }
+
+  interface FlightRecord {
+    aircraftId: string | number;
+    aircraftName: string;
+    departure: string;
+    depCoords: number[];
+    takeoffTime: number;
+    payload: TransportPayload;
+    arrival?: string;
+    arrCoords?: number[];
+    landingTime?: number;
+    flightTime?: string | number;
+    distance?: number;
+    score?: FlightScore;
+    income?: number;
+    callsign?: string;
+  }
+
+  declare class Career {
+    static balance: number;
+    static logbook: Record<string, FlightRecord[]>;
+    static currentFlight: FlightRecord | null;
+    static flightState: "ground" | "airborne";
+    static callbackId: number | null;
+    static isActive: boolean;
+
+    static init(): void;
+    static activate(): void;
+    static deactivate(): void;
+    static getStorage(): typeof FlightStorage | undefined;
+    static loadData(): Promise<void>;
+    static saveData(): void;
+    static getNearestAirport(location: number[]): string;
+    static update(): void;
+    static handleTakeoff(): void;
+    static handleLanding(): void;
+  }
 }
 
 declare namespace ExperimentalFlightInterface {
@@ -254,11 +362,13 @@ declare namespace ExperimentalFlightInterface {
   }
   export interface APP {
     version: string;
+    core?: any;
     status?: Status;
     refs: Refs;
     instance: Instance;
     aircraft?: Aircraft;
     Storage?: typeof FlightStorage;
+    Career?: typeof Career;
     getAircraftKey?: () => string | null;
   }
 }

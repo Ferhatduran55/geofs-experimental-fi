@@ -45,7 +45,10 @@
       "namespace": "https://github.com/Ferhatduran55/geofs-experimental-fi",
       "homepage": "https://greasyfork.org/scripts/488227",
       "author": "Ferhatduran55",
-      "match": "https://www.geo-fs.com/geofs.php?v=3.9",
+      "match": [
+        "https://www.geo-fs.com/geofs.php?v=3.9",
+        "https://beta.geo-fs.com/geofs.php?v=4"
+      ],
       "supportURL": "https://greasyfork.org/scripts/488227/feedback",
       "downloadURL": "https://update.greasyfork.org/scripts/488227.user.js",
       "updateURL": "https://update.greasyfork.org/scripts/488227.meta.js",

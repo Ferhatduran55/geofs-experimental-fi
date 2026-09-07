@@ -1,6 +1,6 @@
 import { getObjectFromPath, formatLabel } from "../utils/Misc";
-import Notify from "../classes/Notify";
-import Logger from "../classes/Logger";
+import Notify from "../shared/Notify";
+import Logger from "../shared/Logger";
 import { onMount, onCleanup, createSignal } from "solid-js";
 import { Plus, Minus } from "../assets/icons";
 
@@ -8,8 +8,8 @@ const log = Logger.create("Input");
 
 export default (props: InputProps) => {
   // Defaults
-  const notifyMode: InputNotifyMode = props.notifyMode || 'input';
-  const notifyCategory = props.notifyCategory || 'input_changes';
+  const notifyMode: InputNotifyMode = props.notifyMode || "input";
+  const notifyCategory = props.notifyCategory || "input_changes";
   const debounceApply = props.debounceApply ?? 0;
   let inputAttributes: any = {};
   let defaultValue: any;
@@ -22,8 +22,43 @@ export default (props: InputProps) => {
     setCurrentMultiplierIndex((prev) => (prev + 1) % multipliers.length);
   };
 
-  // Debounce/apply state
+  // Stacked Batch Commit State for high performance rapid adjustments
+  let stackTimeout: number | null = null;
   let applyTimeout: number | null = null;
+  let lastCommittedValue: any = null;
+
+  const commitStackedChange = (value: number) => {
+    if (stackTimeout) {
+      clearTimeout(stackTimeout);
+      stackTimeout = null;
+    }
+
+    // Debounce physical write and notifications by 80ms so rapid arrow presses stay buttery smooth
+    stackTimeout = window.setTimeout(() => {
+      try {
+        const res = resource();
+        if (res && props.name) {
+          (res as any)[props.name] = value;
+        }
+
+        if (props.onChange && value !== lastCommittedValue) {
+          props.onChange(value);
+        }
+
+        if (notifyMode === "input" || notifyMode === "both") {
+          Notify.success(`${props.name} set to ${value}`, notifyCategory);
+        }
+
+        scheduleApply(value);
+        lastCommittedValue = value;
+      } catch (e) {
+        log.error("Failed to commit stacked input change:", e);
+      } finally {
+        stackTimeout = null;
+      }
+    }, 80);
+  };
+
   const scheduleApply = (value: any) => {
     if (!props.onApply) return;
     if (applyTimeout) {
@@ -32,31 +67,44 @@ export default (props: InputProps) => {
     }
     if (debounceApply && debounceApply > 0) {
       applyTimeout = window.setTimeout(() => {
-        try { props.onApply && props.onApply(value); } catch (e) { /* ignore */ }
+        try {
+          props.onApply && props.onApply(value);
+        } catch (e) {
+          /* ignore */
+        }
         applyTimeout = null;
       }, debounceApply);
     } else {
-      try { props.onApply && props.onApply(value); } catch (e) { /* ignore */ }
+      try {
+        props.onApply && props.onApply(value);
+      } catch (e) {
+        /* ignore */
+      }
     }
   };
+
   const flushApply = (value: any) => {
     if (applyTimeout) {
       clearTimeout(applyTimeout);
       applyTimeout = null;
     }
-    try { props.onApply && props.onApply(value); } catch (e) { /* ignore */ }
+    try {
+      props.onApply && props.onApply(value);
+    } catch (e) {
+      /* ignore */
+    }
   };
 
-  const notify = (msg: string, type: string = 'success') => {
+  const notify = (msg: string, type: string = "success") => {
     const category = props.notifyCategory || notifyCategory;
     switch (type) {
-      case 'error':
+      case "error":
         Notify.error(msg, category);
         break;
-      case 'info':
+      case "info":
         Notify.info(msg, category);
         break;
-      case 'warning':
+      case "warning":
         Notify.warning(msg, category);
         break;
       default:
@@ -78,17 +126,13 @@ export default (props: InputProps) => {
       (res as any)[props.name] = parsedValue;
     }
 
-    // also call onChange/onApply when reset
     if (props.onChange) props.onChange(parsedValue);
     if (props.onApply) props.onApply(parsedValue);
 
     if (prototypeOfValue() === "number") calculateMax();
   };
 
-
-
   try {
-    // Allow either a resource-bound input (name + resource) or a controlled input (value prop)
     if (!props.resource && props.value === undefined && !props.name) {
       throw new Error("Input component requires either a resource/name pair or a value prop.");
     }
@@ -108,7 +152,7 @@ export default (props: InputProps) => {
       return obj;
     }
     return props.resource;
-  }
+  };
 
   const isResourceValid = () => {
     const res = resource();
@@ -152,31 +196,42 @@ export default (props: InputProps) => {
     const value = Number(reference.value);
     const min = Number(reference.min);
     const max = Number(reference.max);
-    if (max < 0) {
-      return value >= min && value <= max;
-    }
-    return value > min && value <= max;
+
+    if (isNaN(value)) return false;
+    return value >= min && value <= max;
   };
 
   const calculateMax = () => {
-    if (!isResourceValid()) return;
+    if (!reference) return;
+
+    if (props.min !== undefined && props.max !== undefined) {
+      reference.min = String(props.min);
+      reference.max = String(props.max);
+      reference.placeholder = `Between ${reference.min} and ${reference.max}`;
+      return;
+    }
+
+    if (!isResourceValid()) {
+      reference.min = "-999999";
+      reference.max = "999999";
+      return;
+    }
+
     const res = resource();
     if (!res || !props.name || !(props.name in res)) return;
 
-    const currentValue = (res as any)[props.name];
+    const currentValue = Number((res as any)[props.name]) || 0;
     const isNegative = currentValue < 0;
 
     if (isNegative) {
-      const newMin = currentValue * 2 * 100;
-      reference!.min = newMin > -1 ? "-10" : newMin.toString();
-      reference!.max = "-1";
+      reference.min = String(Math.min(-100000, currentValue * 10));
+      reference.max = "0";
     } else {
-      const newMax = currentValue * 2 * 100;
-      reference!.max = newMax < 1 ? "10" : newMax.toString();
-      reference!.min = "0";
+      reference.min = "0";
+      reference.max = String(Math.max(100000, currentValue * 10));
     }
 
-    reference!.placeholder = `Between ${reference?.min} and ${reference?.max}`;
+    reference.placeholder = `Min ${reference.min}, Max ${reference.max}`;
   };
 
   const reset = () => {
@@ -191,7 +246,6 @@ export default (props: InputProps) => {
     notify(`${props.name} reset to ${reference!.value}`, "info");
   };
 
-  // Expose ref API after reset is defined
   if (props.ref) {
     props.ref({ reset: reset, resetToDefault });
   }
@@ -224,27 +278,19 @@ export default (props: InputProps) => {
           );
 
           const newValue = currentValue + direction * totalModifier;
-
           reference!.value = newValue.toFixed(decimals);
+
           if (!between()) {
             if (!isResourceValid()) return;
             const res = resource();
             if (res && props.name && props.name in res) {
               reference!.value = (res as any)[props.name];
             }
-            return notify(
-              `Value must be between ${reference?.min} and ${reference?.max}`,
-              "error"
-            );
+            return notify(`Value must be between ${reference?.min} and ${reference?.max}`, "error");
           }
 
-          if (!isResourceValid()) return;
-          const res = resource();
-          if (res) {
-            if (props.name) (res as any)[props.name] = reference!.value;
-          }
           calculateMax();
-          notify(`${props.name} set to ${reference!.value}`, "success");
+          commitStackedChange(parseFloat(reference!.value));
         }
       } else if (event instanceof InputEvent) {
         if (!between()) {
@@ -256,20 +302,9 @@ export default (props: InputProps) => {
           return notify(`Value must be between ${reference?.min} and ${reference?.max}`, "error");
         }
 
-        if (!isResourceValid()) return;
-        const res = resource();
-        if (res && props.name) {
-          (res as any)[props.name] = parseFloat(reference!.value);
-        }
-        calculateMax();
-
-        // call onChange and schedule onApply
         const numericValue = parseFloat(reference!.value);
-        props.onChange && props.onChange(numericValue);
-        if (notifyMode === 'input' || notifyMode === 'both') {
-          notify(`${props.name} set to ${reference!.value}`, 'success');
-        }
-        scheduleApply(numericValue);
+        calculateMax();
+        commitStackedChange(numericValue);
       }
     }
   };
@@ -297,17 +332,8 @@ export default (props: InputProps) => {
       return notify(`Value must be between ${reference.min} and ${reference.max}`, "error");
     }
 
-    const res = resource();
-    if (res && props.name) {
-      const numericValue = parseFloat(reference.value);
-      (res as any)[props.name] = numericValue;
-      props.onChange && props.onChange(numericValue);
-      if (notifyMode === 'input' || notifyMode === 'both') {
-        notify(`${props.name} set to ${reference.value}`, "success");
-      }
-      scheduleApply(numericValue);
-    }
     calculateMax();
+    commitStackedChange(parseFloat(reference.value));
   };
 
   const decrement = () => {
@@ -333,21 +359,9 @@ export default (props: InputProps) => {
       return notify(`Value must be between ${reference.min} and ${reference.max}`, "error");
     }
 
-    const res = resource();
-    if (res && props.name) {
-      const numericValue = parseFloat(reference.value);
-      (res as any)[props.name] = numericValue;
-      props.onChange && props.onChange(numericValue);
-      if (notifyMode === 'input' || notifyMode === 'both') {
-        notify(`${props.name} set to ${reference.value}`, "success");
-      }
-      scheduleApply(numericValue);
-    }
     calculateMax();
+    commitStackedChange(parseFloat(reference.value));
   };
-
-  // (Replaced earlier) - kept for compatibility
-
 
   inputAttributes = values();
   onMount(() => {
@@ -355,28 +369,39 @@ export default (props: InputProps) => {
     setDefaults();
   });
   onCleanup(() => {
-    reset();
+    if (stackTimeout) {
+      clearTimeout(stackTimeout);
+      stackTimeout = null;
+    }
+    if (applyTimeout) {
+      clearTimeout(applyTimeout);
+      applyTimeout = null;
+    }
     reference = undefined;
   });
 
   // Special rendering for color
-  if (props.type === 'color') {
+  if (props.type === "color") {
     const currentVal = () => {
       if (props.value !== undefined) {
-        if (typeof props.value === 'function') {
-          try { return String((props.value as any)()); } catch (e) { return String(props.value as any); }
+        if (typeof props.value === "function") {
+          try {
+            return String((props.value as any)());
+          } catch (e) {
+            return String(props.value as any);
+          }
         }
         return String(props.value as any);
       }
       const res = resource();
       if (res && props.name && props.name in res) return String((res as any)[props.name]);
-      return '#ffffff';
+      return "#ffffff";
     };
 
     return (
       <div class="w-full bg-gray-900 dark:bg-black rounded-md p-3">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-sm text-gray-400">{props.label || formatLabel(String(props.name || ''))}</span>
+          <span class="text-sm text-gray-400">{props.label || formatLabel(String(props.name || ""))}</span>
           <span class="text-sm font-mono text-green-400">{currentVal()}</span>
         </div>
         <input
@@ -386,7 +411,10 @@ export default (props: InputProps) => {
           onInput={(e: InputEvent) => {
             const value = String((e.currentTarget as HTMLInputElement).value);
             props.onChange && props.onChange(value);
-            if (isResourceValid() && props.name) { const res = resource(); if (res) (res as any)[props.name] = value; }
+            if (isResourceValid() && props.name) {
+              const res = resource();
+              if (res) (res as any)[props.name] = value;
+            }
             scheduleApply(value);
           }}
         />
@@ -395,11 +423,15 @@ export default (props: InputProps) => {
   }
 
   // Special rendering for boolean toggle
-  if (props.type === 'boolean') {
+  if (props.type === "boolean") {
     const currentVal = () => {
       if (props.value !== undefined) {
-        if (typeof props.value === 'function') {
-          try { return Boolean((props.value as any)()); } catch (e) { return Boolean(props.value as any); }
+        if (typeof props.value === "function") {
+          try {
+            return Boolean((props.value as any)());
+          } catch (e) {
+            return Boolean(props.value as any);
+          }
         }
         return Boolean(props.value as any);
       }
@@ -411,23 +443,32 @@ export default (props: InputProps) => {
     return (
       <div class="w-full bg-gray-900 dark:bg-black rounded-md p-3 flex items-center justify-between">
         <div>
-          <span class="text-sm text-gray-400">{props.label || formatLabel(String(props.name || ''))}</span>
+          <span class="text-sm text-gray-400">{props.label || formatLabel(String(props.name || ""))}</span>
           {props.comment && <div class="text-xs text-gray-500">{props.comment}</div>}
         </div>
         <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
           <button
             type="button"
-            class={`relative inline-flex h-6 w-12 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out ${currentVal() ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+            class={`relative inline-flex h-6 w-12 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out ${
+              currentVal() ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+            }`}
             role="switch"
             aria-checked={currentVal()}
             onclick={() => {
               const newValue = !currentVal();
               props.onChange && props.onChange(newValue);
-              if (isResourceValid() && props.name) { const res = resource(); if (res) (res as any)[props.name] = newValue; }
+              if (isResourceValid() && props.name) {
+                const res = resource();
+                if (res) (res as any)[props.name] = newValue;
+              }
               flushApply(newValue);
             }}
           >
-            <span class={`absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-200 ${currentVal() ? 'right-0 border-green-500' : 'left-0 border-gray-300 dark:border-gray-600'}`} />
+            <span
+              class={`absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-200 ${
+                currentVal() ? "right-0 border-green-500" : "left-0 border-gray-300 dark:border-gray-600"
+              }`}
+            />
           </button>
         </div>
       </div>
@@ -435,13 +476,15 @@ export default (props: InputProps) => {
   }
 
   // Special rendering for range (slider)
-  if (props.type === 'range') {
-    // determine current value source
+  if (props.type === "range") {
     const currentVal = () => {
       if (props.value !== undefined) {
-        // Solid signals may pass a getter function as prop.value
         if (typeof props.value === "function") {
-          try { return Number((props.value as any)()); } catch (e) { return Number(props.value as any); }
+          try {
+            return Number((props.value as any)());
+          } catch (e) {
+            return Number(props.value as any);
+          }
         }
         return Number(props.value as any);
       }
@@ -450,12 +493,11 @@ export default (props: InputProps) => {
       return 0;
     };
 
-    // formatter based on step / provided valueFormatter
     const decimals = (() => {
       const s = props.step ?? 1;
-      const n = typeof s === 'number' ? s : parseFloat(String(s));
+      const n = typeof s === "number" ? s : parseFloat(String(s));
       if (!isFinite(n) || n <= 0) return 0;
-      const d = Math.max(0, -(Math.floor(Math.log10(n))));
+      const d = Math.max(0, -Math.floor(Math.log10(n)));
       return d;
     })();
 
@@ -470,9 +512,12 @@ export default (props: InputProps) => {
       <div class="w-full bg-gray-900 dark:bg-black rounded-md p-3">
         <div class="flex items-center justify-between mb-2">
           <div>
-            <span class="text-sm text-gray-400">{props.label || formatLabel(String(props.name || ''))}</span>
+            <span class="text-sm text-gray-400">{props.label || formatLabel(String(props.name || ""))}</span>
           </div>
-          <span class="text-sm font-mono text-green-400">{formatValue(currentVal())}{props.unit ? ` ${props.unit}` : ''}</span>
+          <span class="text-sm font-mono text-green-400">
+            {formatValue(currentVal())}
+            {props.unit ? ` ${props.unit}` : ""}
+          </span>
         </div>
         <input
           type="range"
@@ -483,14 +528,16 @@ export default (props: InputProps) => {
           class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
           onInput={(e: InputEvent) => {
             const value = Number((e.currentTarget as HTMLInputElement).value);
-            // visual update
             if (props.onChange) props.onChange(value);
             if (isResourceValid() && props.name) {
               const res = resource();
               if (res && props.name) (res as any)[props.name] = value;
             }
-            if (notifyMode === 'input' || notifyMode === 'both') {
-              Notify.success(`${formatValue(value)}${props.unit ? ' ' + props.unit : ''}`, props.notifyCategory || notifyCategory);
+            if (notifyMode === "input" || notifyMode === "both") {
+              Notify.success(
+                `${formatValue(value)}${props.unit ? " " + props.unit : ""}`,
+                props.notifyCategory || notifyCategory
+              );
             }
             scheduleApply(value);
           }}
@@ -504,8 +551,16 @@ export default (props: InputProps) => {
         )}
         {showLimits && (
           <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-            <span>{props.min ?? 0}{props.unit ? ` ${props.unit}` : ''}{props.minLabel ? ` • ${props.minLabel}` : ''}</span>
-            <span>{props.max ?? 100}{props.unit ? ` ${props.unit}` : ''}{props.maxLabel ? ` • ${props.maxLabel}` : ''}</span>
+            <span>
+              {props.min ?? 0}
+              {props.unit ? ` ${props.unit}` : ""}
+              {props.minLabel ? ` • ${props.minLabel}` : ""}
+            </span>
+            <span>
+              {props.max ?? 100}
+              {props.unit ? ` ${props.unit}` : ""}
+              {props.maxLabel ? ` • ${props.maxLabel}` : ""}
+            </span>
           </div>
         )}
       </div>
@@ -515,7 +570,7 @@ export default (props: InputProps) => {
   // Default rendering: numeric/text with multiplier controls
   return (
     <div class="w-full bg-gray-900 dark:bg-black rounded-md p-3 flex items-center justify-between">
-      <span class="text-sm text-gray-400">{formatLabel(String(props.name || ''))}</span>
+      <span class="text-sm text-gray-400">{formatLabel(String(props.name || ""))}</span>
       <div class="flex items-center space-x-3">
         <input
           class="font-display text-2xl text-cyan-400 bg-transparent border-none w-28 text-right focus:ring-0 focus:outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"

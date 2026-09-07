@@ -11,3 +11,4 @@ export { default as Tune } from "./Tune";
 export { default as LocalGasStation } from "./LocalGasStation";
 export { default as Engine } from "./Engine";
 export { default as Refresh } from "./Refresh";
+export { default as Flight } from "./Flight";

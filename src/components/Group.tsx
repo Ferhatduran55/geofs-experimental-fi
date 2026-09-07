@@ -2,7 +2,7 @@ import { Switch, Match, Suspense, For, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import GroupRotation from "../assets/icons/GroupRotation";
 import { Refresh } from "../assets/icons";
-import Logger from "../classes/Logger";
+import Logger from "../shared/Logger";
 
 const log = Logger.create("Group");
 

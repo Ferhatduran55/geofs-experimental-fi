@@ -8,7 +8,8 @@ import {
 import Groups from "../hooks/Groups";
 import Group from "../components/Group";
 import ui from "../assets/json/UserInterface";
-import Logger from "../classes/Logger";
+import Logger from "../shared/Logger";
+import { core } from "../core/CoreEngine";
 
 const log = Logger.create("Assistant");
 
@@ -18,13 +19,13 @@ export const reloadUI = () => {
   log.debug("External reload UI called");
   if (reloadUICallback) {
     reloadUICallback();
+  } else {
+    core.ui.requestReload();
   }
 };
 
 const MenuComponent = () => {
-  return (
-    <GroupsList />
-  );
+  return <GroupsList />;
 };
 
 const GroupsList = () => {
@@ -32,6 +33,9 @@ const GroupsList = () => {
 
   onMount(() => {
     log.debug("GroupsList mounted with groups:", groups.length);
+    if (!flightAssistant.refs) {
+      flightAssistant.refs = {};
+    }
     for (let i = 0; i < groups.length; i++) {
       let { name, reference } = groups[i];
       flightAssistant.refs[name] = reference;
@@ -70,21 +74,30 @@ const ContainerComponent = () => {
   const forceReload = () => {
     log.debug("Force reloading UI...");
     if (ref) {
-      ref.innerHTML = '';
-      setRenderKey(prev => prev + 1);
+      ref.innerHTML = "";
+      setRenderKey((prev) => prev + 1);
       render(() => <MenuComponent />, ref);
       log.debug("UI reloaded with key:", renderKey());
     }
   };
 
   onMount(() => {
+    if (!flightAssistant.refs) flightAssistant.refs = {};
     flightAssistant.refs.container = ref;
     reloadUICallback = forceReload;
-    log.debug("Reload callback registered");
+
+    // Connect to core UI reload listener
+    const unbind = core.ui.onReloadRequested(forceReload);
+
+    onCleanup(() => {
+      unbind();
+    });
+
+    log.debug("Reload callback registered with CoreEngine");
   });
 
   onCleanup(() => {
-    flightAssistant.refs.container = null;
+    if (flightAssistant.refs) flightAssistant.refs.container = null;
     reloadUICallback = null;
   });
 
@@ -106,11 +119,12 @@ const ContainerComponent = () => {
 const ButtonComponent = () => {
   let ref: any;
   onMount(() => {
+    if (!flightAssistant.refs) flightAssistant.refs = {};
     flightAssistant.refs.button = ref;
   });
 
   onCleanup(() => {
-    flightAssistant.refs.button = null;
+    if (flightAssistant.refs) flightAssistant.refs.button = null;
   });
 
   return (
@@ -133,4 +147,3 @@ const ButtonComponent = () => {
 
 export const Container = () => render(() => <ContainerComponent />, ui.left);
 export const Button = () => render(() => <ButtonComponent />, ui.bottom);
-  

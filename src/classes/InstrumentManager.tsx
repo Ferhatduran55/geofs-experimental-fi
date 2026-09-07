@@ -94,19 +94,18 @@ class InstrumentManager {
 
 
 
-    // Create GeoFS-compatible definition (same structure as native instruments)
     const geofsDefinition: any = {
       container: definition.container,
       stackX: definition.stackX ?? true,
       stackY: definition.stackY,
       group: definition.group || "all",
       compositors: definition.compositors || "css",
-      overlay: definition.overlay,
+      overlay: JSON.parse(JSON.stringify(definition.overlay)),
     };
 
     // Add animations for visibility control (like GeoFS stall indicator)
     if (definition.animations) {
-      geofsDefinition.animations = definition.animations;
+      geofsDefinition.animations = JSON.parse(JSON.stringify(definition.animations));
     }
 
     // Add visibility if specified (for GeoFS show/hide system)
@@ -177,86 +176,125 @@ class InstrumentManager {
 
 
   /**
-   * Ensure all registered definitions exist in instruments.definitions
-   */
-  static ensureDefinitionsRegistered(): void {
-    const instruments = (unsafeWindow as any).instruments;
-    if (!instruments?.definitions) return;
-
-    for (const [name, registered] of this.registeredInstruments) {
-      if (!instruments.definitions[name]) {
-        const geofsDefinition: any = {
-          container: registered.definition.container,
-          stackX: registered.definition.stackX ?? true,
-          group: registered.definition.group || "all",
-          compositors: registered.definition.compositors || "css",
-          overlay: registered.definition.overlay,
-        };
-
-        // Add animations if defined
-        if (registered.definition.animations) {
-          geofsDefinition.animations = registered.definition.animations;
-        }
-
-        if (registered.definition.visibility !== undefined) {
-          geofsDefinition.visibility = registered.definition.visibility;
-        }
-
-        instruments.definitions[name] = geofsDefinition;
-        log.debug(`Ensured definition exists: ${name}`);
-      }
-    }
-  }
-
-  /**
    * Re-initialize GeoFS instruments to include currently active registered instruments
+   * We do NOT call instruments.init() here anymore, because it wipes and restarts all 
+   * native instruments mid-flight, disconnecting their 3D cockpit references.
+   * Instead, we manually construct the indicators and add them to instruments.list
    */
   static reinitializeActiveInstruments(): void {
     const instruments = (unsafeWindow as any).instruments;
-    if (!instruments) {
+    const geofs = (unsafeWindow as any).geofs;
+
+    if (!instruments || !geofs) {
       log.warn("Cannot reinitialize instruments: GeoFS instruments not available");
       return;
     }
 
-    // Ensure all our definitions are present
-    this.ensureDefinitionsRegistered();
-
-    // Build the list object for instruments.init: include existing instruments and our active ones
-    const listObj: any = {};
-
+    // 1. Find the Indicator constructor from an existing native instrument
+    let IndicatorClass = null;
     if (instruments.list) {
       for (const key in instruments.list) {
-        listObj[key] = "";
-      }
-    }
-
-    for (const [name, registered] of this.registeredInstruments) {
-      if (registered.isActive) {
-        listObj[name] = "";
-      } else {
-        // ensure it's not included accidentally
-        if (listObj[name]) delete listObj[name];
-      }
-    }
-
-    try {
-      instruments.init(listObj);
-
-      // Update references to indicators
-      for (const [name, registered] of this.registeredInstruments) {
-        registered.indicator = instruments.list?.[name] || null;
-        if (registered.indicator && registered.definition.onInit) {
-          try { registered.definition.onInit(); } catch (e) { /* ignore */ }
+        if (!this.registeredInstruments.has(key)) {
+          // It's a native instrument, grab its constructor
+          IndicatorClass = instruments.list[key]?.constructor;
+          if (IndicatorClass) break;
         }
       }
+    }
 
-      // Trigger rescale so GeoFS measures and places new overlays
-      instruments.rescale && instruments.rescale();
-      instruments.updateScreenPositions && instruments.updateScreenPositions();
+    // Fallbacks if native list is somehow empty
+    if (!IndicatorClass) {
+      IndicatorClass = geofs.gui?.Indicator || (geofs as any).Indicator;
+    }
 
-      log.debug("Reinitialized active instruments via GeoFS init");
-    } catch (e) {
-      log.error("Failed to reinitialize instruments:", e);
+    if (!IndicatorClass) {
+      log.error("Could not determine GeoFS Indicator class");
+      return;
+    }
+
+    let domChanged = false;
+
+    // 2. Iterate over our registered instruments and add/remove manually
+    for (const [name, registered] of this.registeredInstruments) {
+      if (registered.isActive) {
+        // ALWAYS inject a fresh deep-cloned definition into GeoFS
+        // GeoFS mutates definitions upon initialization which breaks subsequent initializations
+        const geofsDef: any = {
+          container: registered.definition.container,
+          stackX: registered.definition.stackX ?? true,
+          stackY: registered.definition.stackY,
+          group: registered.definition.group || "all",
+          compositors: registered.definition.compositors || "css",
+          overlay: JSON.parse(JSON.stringify(registered.definition.overlay)),
+        };
+
+        if (registered.definition.animations) {
+          geofsDef.animations = JSON.parse(JSON.stringify(registered.definition.animations));
+        }
+
+        if (registered.definition.visibility !== undefined) {
+          geofsDef.visibility = registered.definition.visibility;
+        }
+
+        instruments.definitions[name] = geofsDef;
+
+        // If it isn't in instruments.list yet, instantiate it manually!
+        if (!instruments.list[name]) {
+          try {
+            const indicator = new IndicatorClass(instruments.definitions[name], name);
+            instruments.list[name] = indicator;
+            registered.indicator = indicator;
+
+            // Run its init lifecycle to build generic DOM structures
+            if (indicator.init) indicator.init();
+
+            // Our custom lifecycle hook
+            if (registered.definition.onInit) {
+              try { registered.definition.onInit(); } catch (e) { /* ignore */ }
+            }
+
+            domChanged = true;
+          } catch (e) {
+            log.error(`Failed to instantiate instrument: ${name}`, e);
+          }
+        }
+      } else {
+        // Deactivate: properly destroy it without wiping the whole board
+        const indicator = instruments.list[name];
+        if (indicator) {
+          if (indicator.destroy) {
+            try { indicator.destroy(); } catch (e) { }
+          } else {
+            // Fallback DOM removal
+            if (indicator.container && indicator.container.remove) {
+              indicator.container.remove();
+            } else if (indicator.domElement && indicator.domElement.remove) {
+              indicator.domElement.remove();
+            }
+          }
+          delete instruments.list[name];
+          registered.indicator = null;
+          domChanged = true;
+        }
+      }
+    }
+
+    // GeoFS Instrument Update Protection:
+    if (geofs.animation && geofs.animation.values) {
+      const vals = geofs.animation.values;
+      if (vals.fuelPercentage === undefined) vals.fuelPercentage = 100;
+      if (vals.fuelConsumption === undefined) vals.fuelConsumption = 0;
+    }
+
+    // 3. Trigger rescale so GeoFS measures and places new overlays
+    if (domChanged) {
+      try {
+        instruments.rescale && instruments.rescale();
+        instruments.updateScreenPositions && instruments.updateScreenPositions();
+        log.debug("Reinitialized active instruments via direct injection");
+      } catch (e) {
+        log.error("Failed to rescale instruments:", e);
+      }
     }
   }
 

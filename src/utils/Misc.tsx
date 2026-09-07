@@ -1,17 +1,19 @@
-export function getObjectFromPath(path: string, safe: boolean = false): any {
+export function getObjectFromPath(path: string, safe: boolean = true): any {
   if (typeof path !== "string") {
     return path;
   }
   const parts: any = path.split(".");
   let obj = unsafeWindow;
   for (let part of parts) {
-    obj = obj[part];
-    if (obj === undefined) {
-      if (safe) {
-        return null;
-      }
+    if (obj === null || obj === undefined) {
+      if (safe) return null;
       throw new Error(`Path ${path} does not exist`);
     }
+    obj = obj[part];
+  }
+  if (obj === undefined) {
+    if (safe) return null;
+    throw new Error(`Path ${path} does not exist`);
   }
   return obj;
 }

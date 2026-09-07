@@ -28,17 +28,18 @@ export default defineConfig({
           console.error("vite-plugin-css-injected-by-js", e);
         }
       },
-    })
+    }),
   ],
   build: {
-    // Inline fonts as base64 (up to 100KB)
-    assetsInlineLimit: 100 * 1024,
+    // Inline all assets as base64
+    assetsInlineLimit: 1024 * 1024, // 1MB
     rollupOptions: {
       input: {
         index: "src/index.tsx",
       },
       output: {
         entryFileNames: "[name].js",
+        inlineDynamicImports: true,
       },
     },
   },

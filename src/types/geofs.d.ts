@@ -1,3 +1,4 @@
+// type designations from Build-398
 declare const GRAVITY: number;
 declare const DEGREES_TO_RAD: number;
 declare const RAD_TO_DEGREES: number;
@@ -485,6 +486,7 @@ declare namespace geofs {
     let WGS84TileSize: number;
     let includes: Record<string, any>;
     let initialRunways: number[][];
+    let initialCoordinates: { 0: number, 1: number, 2: number, 3: number, 4: boolean }; // {0: 31.86196550220764, 1: 35.22646086580915, 2: 0, 3: 11.783107529145402, 4: true}
     let lastFlightDefault: any;
     let lastFlight: any;
     let lastFlightCoordinates: number[];
@@ -515,6 +517,15 @@ declare namespace geofs {
         local?: boolean;
         community?: boolean;
     }>;
+    let PBRshadersOn: boolean;
+    let groundClosureSpeed: number;
+    let oldRelativeAltitude: number;
+    let airportServer: string;
+    let domain: string;
+    let preferredCompositor: string;
+    let skipResetConfirmation: boolean;
+    let splashTimeout: number;
+    let tips: string[];
     let userRecord: {
         id: number | string;
         sessionId: string;
@@ -547,6 +558,8 @@ declare namespace geofs {
     function init(): void;
     function start(e?: any, t?: any): void;
     function unload(): void;
+    function showSplash(): void;
+    function hideSplash(): void;
     function initLoggedInUser(): void;
     function terrainProbbingDone(): void;
     function probeTerrain(): void;
@@ -598,6 +611,33 @@ declare namespace geofs {
     function headingPitchRollScaleToFixedFrame(position: any, heading: number, pitch: number, roll: number, scale: number[]): any;
     function selectDropdown(selectElement: HTMLSelectElement, value: string | number): void;
     function getLink(): void;
+
+    namespace airports {
+        let qualityLevels: Record<number, Record<number, { range: number; altitude: number }>>;
+        let taxiwayDefaultWidth: number;
+        let taxiwayLightElevation: number;
+        let taxiwayLightBillboardOptions: any;
+        function init(): void;
+        function update(e: number[]): void;
+    }
+
+    namespace alarms {
+        let channels: Record<number | string, { label: string; toPlay?: string | null; playing?: string | null }>;
+        let VSDownThreshold: number;
+        let defaults: Record<string, any>;
+        let apDisconnectHandler: Function;
+        let flyToHandler: Function;
+        let lastArmedCallout: number | null;
+        let soundPlaying: boolean;
+        let definitions: any;
+        function init(t?: any): void;
+        function configure(t?: any): void;
+        function update(t: number): void;
+        function setChannelSound(channel: number | string, soundId: string | null): void;
+        function playAlarms(): void;
+        function stopAlarms(): void;
+        function destroy(): void;
+    }
 
     namespace configuration {
         let defaults: any;
@@ -695,6 +735,8 @@ declare namespace geofs {
         function configureOutsideView(): void;
         function configureInsideView(): void;
         function setGlobeLighting(e: boolean): void;
+        function setDynamicLighting(e: boolean): void;
+        function setPBRshaders(e: boolean): void;
         function setSceneLight(e: any, t?: number): void;
         function setWaterEffect(e: boolean): void;
         function setVegetation(e: boolean): void;
@@ -748,6 +790,8 @@ declare namespace geofs {
         function destroyInstanceCollection(e: string): void;
         function setModelTextureFromCanvas(e: any, t: any, a?: number): void;
         function changeModelTexture(e: any, t: string, a: any): void;
+        function getModelTexture(e: any, t: string): any;
+        function setEmissiveFactor(e: any, t: number[] | number, a?: any): void;
         function toggleModelShadow(e: any, t: boolean): void;
         function removeModelFromWorld(e: any): void;
         function setModelVisibility(e: any, t: boolean): boolean;
@@ -808,6 +852,8 @@ declare namespace geofs {
             setColor(e: any): void;
             setShadows(e: any): void;
             setCssColor(e: string): void;
+            setEmissiveFactor(e: number[] | number, t?: any): void;
+            setNodeOverlayRenderPass(e: string, t?: any): void;
             addShader(e: any, t: any): any;
             setTextureFromCanvas(e: any, t: any): any;
             changeTexture(e: string, t: any): any;
@@ -1237,6 +1283,8 @@ declare namespace geofs {
         let timeProvider: any;
         let lastNow: number;
         let functionsMap: Record<string, any>;
+        let morseMap: Record<string, string>;
+        let easingFunctions: Record<string, Function>;
         function fastNow(): number;
         function now(): number;
         function updateTime(e: any, t: number): boolean;
@@ -1254,16 +1302,25 @@ declare namespace geofs {
         function stickyRounding(e: number, t: number): number;
         function knotsToMach(e: number): number;
         function machToKnots(e: number): number;
+        function msToMach(e: number): number;
         function machToMs(e: number): number;
+        function machToIAS(mach: number, altitude?: number): number;
+        function IAStoMach(ias: number, altitude?: number): number;
+        function IASToTAS(ias: number, altitude?: number): number;
+        function TASToIAS(tas: number, altitude?: number): number;
         function sortLocationByDistance(e: number[], t: any[]): any[];
         function distanceBetweenLocations(e: number[], t: number[]): number;
         function bearingBetweenLocations(e: number[], t: number[]): number;
+        function lookAt(e: number[], t: number[], a?: any): number[];
+        function limitRate(e: number, t: number, a: number, o: number): number;
+        function textToMorse(e: string): string;
         function isWebglSupported(): any;
         function getFunctionFromString(e: string): Function | undefined;
         function booleanToBinary(e: boolean): number;
         function toFixedFloat(e: number, t: number): number;
         function arrayToFixed(e: number[], t: number): number[];
         function wordToDigit(e: string): number | string;
+        function capitalizeFirstLetter(e: string): string;
     }
 
     namespace ajax {
@@ -1284,6 +1341,14 @@ declare namespace geofs {
         let defaultDefinition: any;
         let instance: Aircraft;
 
+        namespace engine {
+            function init(engineObj: any): void;
+            function update(engineObj: any, dt: number): void;
+            function getThrustFromPropeller(engineObj: any): number;
+            function turnOn(): void;
+            function turnOff(): void;
+        }
+
         class Aircraft {
             constructor(e: number[]);
             id: string;
@@ -1292,7 +1357,16 @@ declare namespace geofs {
                 rpm: number;
                 on: boolean;
                 startup?: boolean;
+                shutdown?: boolean;
                 invRPMRange?: number;
+                N1?: number;
+                N2?: number;
+                EGT?: number;
+                thrust?: number;
+                throttle?: number;
+                propPitch?: number;
+                mixture?: number;
+                engineType?: string;
             };
             engines: any[];
             brakesOn: boolean;
@@ -1353,6 +1427,11 @@ declare namespace geofs {
             placeParts(e?: any): void;
             placePart(e: any): void;
             render(): void;
+            startEngines(engineIndex?: number, side?: string): void;
+            stopEngines(engineIndex?: number, side?: string): void;
+            setEngines(engineIndex?: number, side?: string, action?: "start" | "stop"): void;
+            update(dt: number): void;
+            updateEmission(): void;
             startEngine(): void;
             stopEngine(): void;
             addOffsets(e: any, t: number): void;
@@ -1862,25 +1941,63 @@ declare namespace controls {
     let pitch: number;
     let yaw: number;
     let throttle: number;
+    let throttle1: number | undefined;
+    let throttle2: number | undefined;
+    let throttle3: number | undefined;
+    let throttle4: number | undefined;
+    let throttleLeft: number | undefined;
+    let throttleRight: number | undefined;
     let mixture: number;
+    let mixtureLeft: number | undefined;
+    let mixtureRight: number | undefined;
+    let propPitch: number | undefined;
+    let propPitchLeft: number | undefined;
+    let propPitchRight: number | undefined;
     let carbHeat: number;
+    let carburatorHeat: number | undefined;
     let reverse: number;
+    let reverse1: number | undefined;
+    let reverse2: number | undefined;
+    let reverse3: number | undefined;
+    let reverse4: number | undefined;
+    let reverseLeft: number | undefined;
+    let reverseRight: number | undefined;
+    let lowerThrottleReverse: number | undefined;
     let brakes: number;
+    let parkingBrake: number | boolean | undefined;
+    let master: boolean | number | undefined;
+    let master1: boolean | number | undefined;
+    let master2: boolean | number | undefined;
+    let master3: boolean | number | undefined;
+    let master4: boolean | number | undefined;
+    let masterLeft: boolean | number | undefined;
+    let masterRight: boolean | number | undefined;
+    let magneto: number | undefined;
+    let magnetoLeft: number | undefined;
+    let magnetoRight: number | undefined;
     let engine: any;
     let elevatorTrim: number;
     let elevatorTrimMin: number;
     let elevatorTrimMax: number;
     let elevatorTrimStep: number;
+    let DIRAdjust: number;
+    let QNHAdjust: number;
     let gear: any;
     let flaps: any;
+    let flapsPositionTarget: number | undefined;
+    let lastFlapsPositionTarget: number | undefined;
     let airbrakes: any;
+    let airbrakesPositionTarget: number | undefined;
     let optionalAnimatedPart: any;
     let accessories: any;
+    let wipers: number | undefined;
+    let wipersSpeed: number | undefined;
     let steering: number;
     let rawYaw: number;
     let throttleAsReverse: number;
     let axisSetters: Record<string, any>;
     let setters: Record<string, any>;
+    let manipulatorSetters: Record<string, any>;
     let manipulators: Record<string, any>;
     let nodeClickHandlers: Record<string, Function>;
 
@@ -2038,6 +2155,7 @@ declare namespace weather {
         let airDensityAtAltitude: number;
         function init(): void;
         function update(e?: number): void;
+        function computeAirPressureAtAltitude(altitude: number): number;
     }
 }
 
@@ -2052,6 +2170,9 @@ declare namespace instruments {
     let definitions: Record<string, InstrumentDef>;
     let rendererInstancesByName: Record<string, Renderer>;
     let manipulators: Record<string, Function>;
+    let externalWindow: Window | null | undefined;
+    let closedExternalWindow: boolean | undefined;
+    let php: boolean | undefined;
 
     function init(e?: any): void;
     function reset(): void;
@@ -2064,6 +2185,8 @@ declare namespace instruments {
     function update(e?: boolean): void;
     function updateCockpitPositions(): void;
     function updateScreenPositions(): void;
+    function openExternalWindow(t?: any, a?: any): Window | null;
+    function closeExternalWindow(): void;
 
     class Renderer {
         constructor(e: any);
@@ -2193,14 +2316,19 @@ declare namespace audio {
     let soundplayer: any;
 
     function init(e: any): void;
+    function addSounds(soundsArray: any[]): void;
+    function update(): void;
     function toggleMute(): void;
     function stop(): void;
     function mute(): void;
     function unmute(): void;
-    function playStartup(): void;
-    function playShutdown(): void;
-    function playSoundLoop(e: string, t: boolean): void;
+    function playStartup(e?: any): void;
+    function playShutdown(e?: any): void;
+    function playSound(soundId: string, loop?: boolean, onEnded?: Function, onStarted?: Function): void;
+    function playSoundLoop(e: string, t?: boolean, onEnded?: Function, onStarted?: Function): void;
     function stopSoundLoop(e: string): void;
+    function destroySound(soundId: string): void;
+    function destroy(): void;
 
     namespace impl {
         namespace webAudio {
