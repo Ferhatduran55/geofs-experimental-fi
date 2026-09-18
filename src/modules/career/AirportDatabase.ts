@@ -10,6 +10,8 @@ export interface AirportInfo {
   elevationFt: number;
   heading?: number;
   runwayHeading?: string;
+  lengthFeet?: number;
+  widthFeet?: number;
   country?: string;
   city?: string;
 }
@@ -67,6 +69,9 @@ export function formatAirportDisplay(ap: AirportInfo): { mainTitle: string; subD
   if (ap.runwayHeading) {
     subDetail = subDetail ? `${subDetail} • ${ap.runwayHeading}` : ap.runwayHeading;
   }
+  if (ap.lengthFeet) {
+    subDetail = subDetail ? `${subDetail} • Rwy: ${ap.lengthFeet.toLocaleString()} ft` : `Rwy: ${ap.lengthFeet.toLocaleString()} ft`;
+  }
 
   return { mainTitle, subDetail: subDetail || "Runway Airfield" };
 }
@@ -101,6 +106,8 @@ export function getGeoFSRunways(): AirportInfo[] {
     const country = rw.country || rw.c || undefined;
     const heading = typeof rw.heading === "number" ? Math.round(rw.heading) : undefined;
     const runwayHeading = heading !== undefined ? `RWY ${heading.toString().padStart(3, "0")}°` : undefined;
+    const lengthFeet = rw.lengthFeet !== undefined ? Math.round(Number(rw.lengthFeet)) : (rw.length ? Math.round(Number(rw.length) * 3.28084) : undefined);
+    const widthFeet = rw.widthFeet !== undefined ? Math.round(Number(rw.widthFeet)) : (rw.width ? Math.round(Number(rw.width) * 3.28084) : undefined);
 
     results.push({
       icao: icao || "RWY",
@@ -110,6 +117,8 @@ export function getGeoFSRunways(): AirportInfo[] {
       elevationFt: Math.round(elevationFt),
       heading,
       runwayHeading,
+      lengthFeet,
+      widthFeet,
       country,
       city,
     });
@@ -155,6 +164,38 @@ export function getGeoFSRunways(): AirportInfo[] {
     }
   }
 
+  // 5. Check geofs.majorRunwayGrid (GeoFS global major runway database)
+  if (geofs.majorRunwayGrid && typeof geofs.majorRunwayGrid === "object") {
+    try {
+      const grid = geofs.majorRunwayGrid;
+      for (const lonKey of Object.keys(grid)) {
+        const latCol = grid[lonKey];
+        if (latCol && typeof latCol === "object") {
+          for (const latKey of Object.keys(latCol)) {
+            const arr = latCol[latKey];
+            if (Array.isArray(arr)) {
+              for (let i = 0; i < arr.length; i++) {
+                const r = arr[i];
+                if (Array.isArray(r) && r.length >= 6) {
+                  // r[0]: icao, r[1]: lengthFeet, r[2]: widthFeet, r[3]: heading, r[4]: lat, r[5]: lon
+                  processRunwayObj({
+                    icao: r[0],
+                    location: [r[4], r[5], 0],
+                    heading: r[3],
+                    lengthFeet: r[1],
+                    widthFeet: r[2],
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      log.debug("Failed reading majorRunwayGrid:", e);
+    }
+  }
+
   return results;
 }
 
@@ -181,6 +222,8 @@ export function findNearestAirport(lat: number, lon: number): AirportInfo {
           elevationFt: Math.round((nativeRw.elevation || loc[2] || 0) * 3.28084),
           heading,
           runwayHeading: heading !== undefined ? `RWY ${heading.toString().padStart(3, "0")}°` : undefined,
+          lengthFeet: nativeRw.lengthFeet !== undefined ? Math.round(Number(nativeRw.lengthFeet)) : (nativeRw.length ? Math.round(Number(nativeRw.length) * 3.28084) : undefined),
+          widthFeet: nativeRw.widthFeet !== undefined ? Math.round(Number(nativeRw.widthFeet)) : (nativeRw.width ? Math.round(Number(nativeRw.width) * 3.28084) : undefined),
           city: nativeRw.city || nativeRw.locality || undefined,
           country: nativeRw.country || nativeRw.c || undefined,
         };

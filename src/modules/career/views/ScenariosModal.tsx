@@ -5,6 +5,9 @@ import { formatAirportDisplay } from "../AirportDatabase";
 import Notify from "../../../shared/Notify";
 import Storage from "../../../shared/Storage";
 import Input from "../../../components/Input";
+import {
+  type AircraftTransportPreset,
+} from "../../../assets/json/AircraftTransportDefs";
 
 interface ScenariosModalProps {
   onClose: () => void;
@@ -20,6 +23,8 @@ export default (props: ScenariosModalProps) => {
   const [hasActiveMission, setHasActiveMission] = createSignal<boolean>(false);
   const [maxDistanceFilter, setMaxDistanceFilter] = createSignal<number>(1200);
   const [isRefreshing, setIsRefreshing] = createSignal<boolean>(false);
+  const [currentAircraftPreset, setCurrentAircraftPreset] = createSignal<AircraftTransportPreset | null>(null);
+  const [currentAircraftName, setCurrentAircraftName] = createSignal<string>("");
 
   const categories = ["All", "Airliner", "Regional", "Bush / GA", "Cargo", "VIP"];
 
@@ -35,19 +40,19 @@ export default (props: ScenariosModalProps) => {
     const mass = ac?.rigidBody?.mass || 2500;
     const acId = ac?.id || "1";
 
+    const preset = TransportEngine.getAircraftPreset(acId, mass);
+    setCurrentAircraftPreset(preset);
+    setCurrentAircraftName(ac?.definition?.name || preset.name);
+
     const pool = TransportEngine.generate30MinDeterministicOperations(
       lla[0],
       lla[1],
       mass,
-      acId
+      acId,
+      forceSeed
     );
 
-    // If custom forceSeed is provided (Refresh button pressed)
-    if (forceSeed) {
-      setMissionPool(pool.sort(() => Math.random() - 0.5));
-    } else {
-      setMissionPool(pool);
-    }
+    setMissionPool(pool);
   };
 
   const handleManualRefresh = () => {
@@ -229,6 +234,28 @@ export default (props: ScenariosModalProps) => {
           </div>
         </div>
 
+        {/* Active Aircraft Capabilities Banner */}
+        <Show when={currentAircraftPreset()}>
+          {(preset) => (
+            <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-2.5 bg-emerald-950/40 border-b border-emerald-800/40 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="text-emerald-400 font-bold">Active Aircraft:</span>
+                <span class="font-black text-white">{currentAircraftName()}</span>
+                <span class="px-2 py-0.5 text-[10px] font-bold bg-emerald-900/60 text-emerald-300 rounded border border-emerald-700/50">
+                  {preset().category}
+                </span>
+              </div>
+              <div class="flex flex-wrap items-center gap-4 text-gray-300 text-[11px] font-mono">
+                <span>📏 Range: <b class="text-emerald-400">{preset().maxRangeNm} NM</b></span>
+                <span>⚡ Cruise: <b class="text-emerald-400">{preset().cruiseSpeedKts} kts</b></span>
+                <span>👥 Max Pax: <b class="text-emerald-400">{preset().maxPassengers}</b></span>
+                <span>📦 Max Cargo: <b class="text-emerald-400">{preset().maxCargoKg.toLocaleString()} kg</b></span>
+                <span>☁️ Ceiling: <b class="text-emerald-400">{preset().serviceCeilingFt.toLocaleString()} ft</b></span>
+              </div>
+            </div>
+          )}
+        </Show>
+
         {/* Filter & Search Toolbar */}
         <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-3 bg-gray-800/40 border-b border-gray-700/50">
           <div class="flex items-center gap-1.5 overflow-x-auto py-1">
@@ -354,6 +381,47 @@ export default (props: ScenariosModalProps) => {
                       <span>⛽ Min. Fuel: {mission.fuelRequiredPercent}%</span>
                       <span>⚓ Dep. Fee: ${mission.baseHandlingFee}</span>
                     </div>
+
+                    {/* Compatibility Status with Current Aircraft */}
+                    {(() => {
+                      const curPreset = currentAircraftPreset();
+                      const exceedsRange = curPreset ? mission.fixedDistanceNm > curPreset.maxRangeNm : false;
+                      const exceedsPayload = curPreset
+                        ? isPax
+                          ? mission.payload.amount > curPreset.maxPassengers
+                          : mission.payload.amount > curPreset.maxCargoKg
+                        : false;
+
+                      return (
+                        <div class="mt-2 flex items-center justify-between text-[10px] px-2 py-1 rounded bg-gray-900/60 border border-gray-700/40">
+                          <Show
+                            when={exceedsRange || exceedsPayload}
+                            fallback={
+                              <span class="text-emerald-400 font-bold flex items-center gap-1">
+                                <span>✅</span>
+                                <span>Compatible with Active Aircraft</span>
+                              </span>
+                            }
+                          >
+                            <span class="text-amber-400 font-bold flex items-center gap-1">
+                              <span>⚠️</span>
+                              <span>
+                                {exceedsRange && exceedsPayload
+                                  ? "Exceeds Range & Payload"
+                                  : exceedsRange
+                                  ? `Exceeds Range (${mission.fixedDistanceNm} > ${curPreset?.maxRangeNm} NM)`
+                                  : "Exceeds Payload Capacity"}
+                              </span>
+                            </span>
+                          </Show>
+                          <span class="text-[9px] text-gray-400">
+                            {mission.aircraftId === String((unsafeWindow as any).geofs?.aircraft?.instance?.id)
+                              ? "Current Model"
+                              : "Auto-swaps on spawn"}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Accept & Dispatch Action */}

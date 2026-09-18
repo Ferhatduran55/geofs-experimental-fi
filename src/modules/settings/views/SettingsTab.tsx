@@ -174,52 +174,52 @@ export default async () => {
               <Input
                 type="range"
                 name="capacity_multiplier"
-                min={0.1}
+                min={0.5}
                 max={2.0}
-                step={0.01}
+                step={0.05}
                 value={capacityMult()}
                 onChange={(v: number) => {
                   setCapacityMult(v);
                   FuelEngine.setCapacityMultiplier(v);
                 }}
                 notifyMode={"none"}
-                minLabel={"Less fuel"}
-                maxLabel={"More fuel"}
+                minLabel={"50% (Less)"}
+                maxLabel={"200% (More)"}
                 showLimits={true}
-                comment={"Fuel capacity = Aircraft Mass × Multiplier × 0.33"}
-                valueFormatter={(v) => Number(v).toFixed(4)}
+                comment={"Capacity Scale = Predefined Aircraft Tank × Multiplier"}
+                valueFormatter={(v) => `${(Number(v) * 100).toFixed(0)}% (${Number(v).toFixed(2)}x)`}
               />
 
               <Input
                 type="range"
                 name="consumption_multiplier"
-                min={0.001}
-                max={0.2}
-                step={0.001}
+                min={0.2}
+                max={3.0}
+                step={0.05}
                 value={consumptionMult()}
                 onChange={(v: number) => {
                   setConsumptionMult(v);
                   FuelEngine.setConsumptionMultiplier(v);
                 }}
                 notifyMode={"none"}
-                minLabel={"Slow burn"}
-                maxLabel={"Fast burn"}
+                minLabel={"20% (Eco)"}
+                maxLabel={"300% (Burn)"}
                 showLimits={true}
-                comment={"Fuel burn rate = (Thrust/RPM) × Multiplier"}
-                valueFormatter={(v) => Number(v).toFixed(4)}
+                comment={"Burn Rate Scale = Authentic Idle & Cruise Flow × Multiplier"}
+                valueFormatter={(v) => `${(Number(v) * 100).toFixed(0)}% (${Number(v).toFixed(2)}x)`}
               />
 
               <button
                 onclick={() => {
-                  setCapacityMult(0.6349575);
-                  setConsumptionMult(0.05);
-                  FuelEngine.setCapacityMultiplier(0.6349575);
-                  FuelEngine.setConsumptionMultiplier(0.05);
-                  Notify.successNow("Fuel settings reset to defaults");
+                  setCapacityMult(1.0);
+                  setConsumptionMult(1.0);
+                  FuelEngine.setCapacityMultiplier(1.0);
+                  FuelEngine.setConsumptionMultiplier(1.0);
+                  Notify.successNow("Fuel settings reset to 1.0x factory defaults");
                 }}
                 class="w-full px-3 py-2 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md transition-colors font-medium"
               >
-                Reset Fuel to Defaults
+                Reset Fuel to 1.0x Defaults
               </button>
             </div>
           </div>

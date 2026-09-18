@@ -202,8 +202,9 @@ declare global {
   }
 
   interface InputRef {
-    reset(): void;
-    resetToDefault(): void;
+    reset(overrideValue?: any): void;
+    resetToDefault(overrideValue?: any): void;
+    setValue?(val: any): void;
   }
 
   interface InputProps {

@@ -6,6 +6,7 @@ import DescriptionIcon from "../../assets/icons/Description";
 import EngineIcon from "../../assets/icons/Engine";
 import renderDefinitionsTab, { resetDefinitions } from "./views/DefinitionsTab";
 import renderEnginesTab, { resetEngines } from "./views/EnginesTab";
+import AircraftSetupStore from "./AircraftSetupStore";
 import type { ICoreEngine, IModule, TabDefinition } from "../../core/types";
 
 const log = Logger.create("AircraftConfigModule");
@@ -29,12 +30,15 @@ export class AircraftConfigModule implements IModule {
     this.core = core;
     await Props.load(propsData);
     Aircraft.refresh();
+    AircraftSetupStore.captureDefaults();
     log.info("AircraftConfigModule initialized.");
   }
 
   async enable(): Promise<void> {
     if (this._isEnabled || !this.core) return;
     this._isEnabled = true;
+
+    AircraftSetupStore.captureDefaults();
 
     // Register Definitions Tab & Engines Tab
     this.core.ui.registerTab(this.getDefinitionsTab());
@@ -47,6 +51,7 @@ export class AircraftConfigModule implements IModule {
           Props.cleanup();
           await Props.load(propsData);
           Aircraft.refresh();
+          AircraftSetupStore.captureDefaults(undefined, true);
           log.info("Aircraft configuration reloaded for new aircraft");
           this.core?.ui.requestReload();
         } catch (e) {

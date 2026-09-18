@@ -1,6 +1,8 @@
 import Logger from "../../shared/Logger";
 import InstrumentManager from "../../shared/InstrumentManager";
 import Storage from "../../shared/Storage";
+import { getAircraftFuelPreset, type AircraftFuelPreset } from "../../assets/json/AircraftFuelDefs";
+import AircraftSetupStore from "../aircraft-config/AircraftSetupStore";
 
 const log = Logger.create("FuelEngine");
 
@@ -27,8 +29,9 @@ export class FuelEngine {
   static currentAircraftId: number = -1;
   static lastUpdateTime: number = 0;
 
-  static capacityMultiplier: number = 0.6349575;
-  static consumptionMultiplier: number = 0.05;
+  static capacityMultiplier: number = 1.0;
+  static consumptionMultiplier: number = 1.0;
+  static currentPreset: AircraftFuelPreset | null = null;
   private static creatingGauge: boolean = false;
 
   static STORAGE_KEYS = {
@@ -221,8 +224,18 @@ export class FuelEngine {
       const savedCapacity = await Storage.get(this.STORAGE_KEYS.capacityMultiplier);
       const savedConsumption = await Storage.get(this.STORAGE_KEYS.consumptionMultiplier);
 
-      if (typeof savedCapacity === "number") this.capacityMultiplier = savedCapacity;
-      if (typeof savedConsumption === "number") this.consumptionMultiplier = savedConsumption;
+      // If user had saved custom multiplier, preserve it (migrating old default 0.6349/0.05 to 1.0)
+      if (typeof savedCapacity === "number" && Math.abs(savedCapacity - 0.6349575) > 0.001) {
+        this.capacityMultiplier = savedCapacity;
+      } else {
+        this.capacityMultiplier = 1.0;
+      }
+
+      if (typeof savedConsumption === "number" && Math.abs(savedConsumption - 0.05) > 0.001) {
+        this.consumptionMultiplier = savedConsumption;
+      } else {
+        this.consumptionMultiplier = 1.0;
+      }
     } catch (error) {
       log.error("Failed to load fuel settings:", error);
     }
@@ -282,9 +295,21 @@ export class FuelEngine {
     const aircraft = (unsafeWindow as any).geofs?.aircraft?.instance;
     if (!aircraft) return;
 
-    const aircraftMass = aircraft.definition?.mass || 1000;
+    const aircraftMass = Number(aircraft.definition?.mass) || 1000;
+    this.currentPreset = getAircraftFuelPreset(aircraft.id, undefined, aircraftMass);
+
+    // Dynamic mass scaling: if the user modifies aircraft mass in DefinitionsTab,
+    // fuel tank capacity scales proportionally to mass / baseMass
+    const baseMass = Number(AircraftSetupStore.getDefinitionDefault("mass")) || aircraftMass;
+    const massRatio = baseMass > 0 ? aircraftMass / baseMass : 1.0;
+
+    const baseCapacity = this.currentPreset.capacityGal > 0
+      ? this.currentPreset.capacityGal
+      : Math.round(aircraftMass * this.KG_TO_GAL * 0.25);
+
+    this.fuelCapacityGal = Math.max(1, Math.round(baseCapacity * massRatio * this.capacityMultiplier * 10) / 10);
+
     const oldPercentage = this.fuelPercentage;
-    this.fuelCapacityGal = aircraftMass * this.capacityMultiplier * this.KG_TO_GAL;
     this.currentFuelGal = (this.fuelCapacityGal * oldPercentage) / 100;
   }
 
@@ -295,7 +320,7 @@ export class FuelEngine {
       this.lastAircraftMassKg = aircraftMass;
 
       await this.loadSettings();
-      this.fuelCapacityGal = aircraftMass * this.capacityMultiplier * this.KG_TO_GAL;
+      this.recalculateCapacity();
 
       this.currentAircraftId = aircraft?.id || 0;
       const savedState = await this.loadFuelState(this.currentAircraftId);
@@ -383,16 +408,59 @@ export class FuelEngine {
       return;
     }
 
+    if (!this.currentPreset) {
+      this.recalculateCapacity();
+    }
+
+    const preset = this.currentPreset || getAircraftFuelPreset(aircraft.id, undefined, aircraft.definition?.mass);
+
+    // If glider or zero-capacity aircraft, no fuel consumption
+    if (preset.capacityGal <= 0) {
+      this.consumptionRateGalPerSec = 0;
+      this.updateAnimationValues();
+      return;
+    }
+
     let totalConsumptionGalPerSec = 0;
+    const throttleVal = geofs?.animation?.values?.throttle ?? 0;
+
     for (let i = 0; i < aircraft.engines.length; i++) {
       const engine = aircraft.engines[i];
-      const thrust = Math.abs(engine?.currentThrust ?? 0);
       const rpm = Math.abs(engine?.rpm || 0);
 
-      if (!rpm || rpm === 0) continue;
+      // Check if engine is running (in GeoFS, stopped engines have rpm close to 0)
+      const minRPM = engine?.minRPM || engine?.idleRPM || 500;
+      const isRunning = rpm > Math.min(50, minRPM * 0.1);
 
-      const perEngineKgPerSec = (thrust / rpm) * this.consumptionMultiplier;
-      const perEngineGalPerSec = perEngineKgPerSec * this.KG_TO_GAL;
+      if (!isRunning) continue;
+
+      const currentThrust = Math.abs(engine?.currentThrust ?? 0);
+      const maxThrust = Math.abs(engine?.thrust ?? 1);
+
+      // Fraction of thrust (0.0 at idle / throttle 0, up to 1.0 at max thrust)
+      const thrustFraction = maxThrust > 10
+        ? Math.min(1.0, currentThrust / maxThrust)
+        : Math.min(1.0, throttleVal);
+
+      // Engine RPM ratio relative to idle
+      const rpmIdleRatio = Math.max(0.3, Math.min(1.3, rpm / Math.max(100, minRPM)));
+
+      // Engine consumption multiplier from engine settings if modified in EnginesTab
+      const engineConsumptionMultiplier =
+        typeof engine?.consumption === "number" && engine.consumption > 0
+          ? engine.consumption
+          : 1.0;
+
+      // Base idle flow per engine (when engine is on at throttle 0 / notch 1)
+      const perEngineIdleFlow =
+        preset.idleFlowGalPerSec * this.consumptionMultiplier * engineConsumptionMultiplier * rpmIdleRatio;
+
+      // Thrust-dependent flow up to maxFlow
+      const perEngineMaxFlow =
+        preset.maxFlowGalPerSec * this.consumptionMultiplier * engineConsumptionMultiplier;
+      const thrustFlow = thrustFraction * Math.max(0, perEngineMaxFlow - perEngineIdleFlow);
+
+      const perEngineGalPerSec = perEngineIdleFlow + thrustFlow;
       totalConsumptionGalPerSec += perEngineGalPerSec;
     }
 
@@ -402,7 +470,7 @@ export class FuelEngine {
     if (this.fuelPercentage > 0) {
       const consumedFuel = this.consumptionRateGalPerSec * deltaTime;
       this.currentFuelGal = Math.max(0, this.currentFuelGal - consumedFuel);
-      this.fuelPercentage = (this.currentFuelGal / this.fuelCapacityGal) * 100;
+      this.fuelPercentage = (this.currentFuelGal / Math.max(1, this.fuelCapacityGal)) * 100;
     }
 
     if (this.fuelPercentage <= 0) {

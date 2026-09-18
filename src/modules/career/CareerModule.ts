@@ -138,6 +138,26 @@ export class CareerModule implements IModule {
         this.logbook = saved.logbook ?? {};
         this.currentMission = saved.currentMission ?? null;
       }
+
+      // Check fallback career_current_mission key if currentMission was not in career_data
+      if (!this.currentMission) {
+        const directMission = await Storage.get<TransportMission | null>("career_current_mission");
+        if (directMission && directMission.destinationIcao) {
+          this.currentMission = directMission;
+        }
+      }
+
+      if (this.currentMission) {
+        log.info(`Active mission successfully resumed on boot: En route to ${this.currentMission.destinationIcao}`);
+        setTimeout(() => {
+          if (this.currentMission) {
+            Notify.info(
+              `Active Contract Resumed: En route to ${this.currentMission.destinationIcao} (${this.currentMission.destinationAirport.name || "Destination"})`,
+              "Operations"
+            );
+          }
+        }, 1200);
+      }
     } catch (e) {
       log.error("Failed to load career data:", e);
     }
@@ -150,6 +170,7 @@ export class CareerModule implements IModule {
         logbook: this.logbook,
         currentMission: this.currentMission,
       });
+      Storage.write("career_current_mission", this.currentMission);
     } catch (e) {
       log.error("Failed to save career data:", e);
     }
@@ -404,6 +425,7 @@ export class CareerModule implements IModule {
       }
 
       this.currentMission = null;
+      Storage.write("career_current_mission", null);
     } else {
       // Free Flight
       messageHtml = `

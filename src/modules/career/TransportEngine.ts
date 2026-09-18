@@ -9,6 +9,10 @@ import {
 } from "./AirportDatabase";
 import { FinancialEngine, type TransportPayload } from "./FinancialEngine";
 import { MarketEngine } from "./MarketEngine";
+import {
+  getAircraftTransportPreset,
+  type AircraftTransportPreset,
+} from "../../assets/json/AircraftTransportDefs";
 
 const log = Logger.create("TransportEngine");
 
@@ -140,7 +144,8 @@ export class TransportEngine {
     originLat?: number,
     originLon?: number,
     aircraftMassKg: number = 2500,
-    _aircraftId?: string | number
+    _aircraftId?: string | number,
+    forceSeed?: number
   ): TransportMission[] {
     const timeSlot = this.getCurrentTimeSlot();
     const geofs = (unsafeWindow as any).geofs;
@@ -152,11 +157,13 @@ export class TransportEngine {
     // Find nearest departure runway from GeoFS
     const departure = findNearestAirport(lla[0], lla[1]);
 
+    const seedBase = forceSeed !== undefined ? forceSeed : timeSlot * 1000003;
     const seed = Math.abs(
-      (timeSlot * 1000003) ^
-      (Math.round(departure.lat * 1000) * 73856093) ^
-      (Math.round(departure.lon * 1000) * 19349663) ^
-      (Math.round(aircraftMassKg) * 83492791)
+      (seedBase ^
+        (Math.round(departure.lat * 1000) * 73856093) ^
+        (Math.round(departure.lon * 1000) * 19349663) ^
+        (Math.round(aircraftMassKg) * 83492791)) >>>
+        0
     );
     const prng = createPRNG(seed);
 
@@ -174,9 +181,12 @@ export class TransportEngine {
       "Regional",
       "Bush / GA",
       "VIP",
+      "Airliner",
+      "Regional",
     ];
 
     const missions: TransportMission[] = [];
+    const destUsageCount = new Map<string, number>();
 
     // Filter available real runways other than departure
     const validDestinations = allRunways.filter(
@@ -185,53 +195,40 @@ export class TransportEngine {
 
     for (let i = 0; i < categories.length; i++) {
       const cat = categories[i];
-      let minDist = 20;
-      let maxDist = 150;
-      let cruiseSpeedKts = 130;
-
-      if (cat === "Airliner") {
-        minDist = 120;
-        maxDist = 1200;
-        cruiseSpeedKts = 450;
-      } else if (cat === "Cargo") {
-        minDist = 100;
-        maxDist = 950;
-        cruiseSpeedKts = 430;
-      } else if (cat === "Regional") {
-        minDist = 40;
-        maxDist = 380;
-        cruiseSpeedKts = 260;
-      } else if (cat === "VIP") {
-        minDist = 50;
-        maxDist = 550;
-        cruiseSpeedKts = 420;
-      } else {
-        minDist = 10;
-        maxDist = 110;
-        cruiseSpeedKts = 120;
-      }
-
       const aircraft = this.getDynamicAircraftForCategory(cat, prng);
+      const preset = getAircraftTransportPreset(aircraft.aircraftId, undefined, aircraftMassKg);
+      const cruiseSpeedKts = preset.cruiseSpeedKts;
+      const maxRangeNm = preset.maxRangeNm;
 
-      // 1. First try to find real GeoFS runways in the preferred category distance range
-      let candidates = validDestinations.filter((rw) => {
+      // Realistic mission distance scaled to aircraft range
+      const minDist = Math.max(15, Math.round(maxRangeNm * 0.05));
+      const maxDist = Math.max(minDist + 20, Math.min(Math.round(maxRangeNm * 0.75), 4500));
+
+      // 1. Find runways in distance range with max 2 offers
+      const candidates = validDestinations.filter((rw) => {
         const d = calculateDistanceNm(departure.lat, departure.lon, rw.lat, rw.lon);
-        return d >= minDist && d <= maxDist;
+        const count = destUsageCount.get(rw.icao) || 0;
+        return d >= minDist && d <= maxDist && count < 2;
       });
+
+      // Low probability of second offer: prefer airports with 0 offers
+      const zeroOfferCandidates = candidates.filter((rw) => (destUsageCount.get(rw.icao) || 0) === 0);
+      const chosenPool =
+        zeroOfferCandidates.length > 0 && prng() > 0.2
+          ? zeroOfferCandidates
+          : candidates.length > 0
+          ? candidates
+          : validDestinations;
 
       let destAirport: AirportInfo;
 
-      if (candidates.length > 0) {
-        const destIdx = Math.floor(prng() * candidates.length);
-        destAirport = candidates[destIdx];
-      } else if (validDestinations.length > 0) {
-        // 2. Fallback: Select from any other real GeoFS runway in the world
-        const destIdx = Math.floor(prng() * validDestinations.length);
-        destAirport = validDestinations[destIdx];
+      if (chosenPool.length > 0) {
+        const destIdx = Math.floor(prng() * chosenPool.length);
+        destAirport = chosenPool[destIdx];
       } else {
-        // 3. Absolute fallback if GeoFS has only 1 runway loaded: place at 30 NM along runway heading
+        // Absolute fallback if no runway available: place along runway heading
         const headingRad = ((departure.heading || 270) * Math.PI) / 180;
-        const targetDistNm = 35;
+        const targetDistNm = Math.min(35, maxDist);
         const distDeg = targetDistNm / 60;
         const dLat = departure.lat + distDeg * Math.cos(headingRad);
         const dLon = departure.lon + distDeg * Math.sin(headingRad);
@@ -245,6 +242,8 @@ export class TransportEngine {
           runwayHeading: departure.runwayHeading,
         };
       }
+
+      destUsageCount.set(destAirport.icao, (destUsageCount.get(destAirport.icao) || 0) + 1);
 
       const fixedDistanceNm = calculateDistanceNm(
         departure.lat,
@@ -261,49 +260,53 @@ export class TransportEngine {
       );
       const initialBearingFormatted = formatBearingWithCompass(initialBearingDeg);
 
-      const isPax =
-        cat === "Airliner" ||
-        cat === "VIP" ||
-        (cat === "Regional" && i % 2 === 0) ||
-        (cat === "Bush / GA" && i % 2 === 0);
+      const forcePax = preset.maxCargoKg === 0;
+      const forceCargo = preset.maxPassengers === 0;
+      const isPax = forcePax
+        ? true
+        : forceCargo
+        ? false
+        : cat === "Airliner" ||
+          cat === "VIP" ||
+          (cat === "Regional" && i % 2 === 0) ||
+          (cat === "Bush / GA" && i % 2 === 0);
+
       let payload: TransportPayload;
 
       if (isPax) {
-        let pax = 3;
-        if (cat === "Airliner") pax = Math.round(120 + prng() * 140);
-        else if (cat === "Regional") pax = Math.round(30 + prng() * 45);
-        else if (cat === "VIP") pax = Math.round(4 + prng() * 8);
-        else pax = Math.round(1 + prng() * 3);
+        const maxP = Math.max(1, preset.maxPassengers);
+        const pax = Math.max(1, Math.min(maxP, Math.round(maxP * (0.35 + prng() * 0.65))));
 
         payload = {
           type: "passenger",
           amount: pax,
-          maxCapacity: pax,
+          maxCapacity: maxP,
         };
       } else {
-        let kg = 350;
-        if (cat === "Cargo") kg = Math.round(6000 + prng() * 25000);
-        else if (cat === "Regional") kg = Math.round(1500 + prng() * 2500);
-        else kg = Math.round(150 + prng() * 600);
+        const maxC = Math.max(25, preset.maxCargoKg);
+        const kg = Math.max(25, Math.min(maxC, Math.round(maxC * (0.35 + prng() * 0.65))));
 
         payload = {
           type: "cargo",
           amount: kg,
-          maxCapacity: kg,
+          maxCapacity: maxC,
         };
       }
 
       const financialPlan = FinancialEngine.calculateFixedContractRevenue(fixedDistanceNm, payload, rates);
       const expectedDurationMs = Math.round((fixedDistanceNm / cruiseSpeedKts) * 3600000);
       const timeLimitMs = Math.round(expectedDurationMs * 2.2 + 300000);
-      const fuelRequiredPercent = Math.min(100, Math.max(30, Math.round(25 + (fixedDistanceNm / maxDist) * 65)));
+      const fuelRequiredPercent = Math.min(
+        100,
+        Math.max(20, Math.round((fixedDistanceNm / Math.max(50, maxRangeNm)) * 100 * 1.25))
+      );
 
       missions.push({
         id: `dyn_${timeSlot}_${departure.icao}_${destAirport.icao}_${i}`,
         category: cat,
         aircraftId: aircraft.aircraftId,
         aircraftModel: aircraft.model,
-        silhouette: aircraft.silhouette,
+        silhouette: preset.silhouette || aircraft.silhouette,
         originIcao: departure.icao,
         originAirport: departure,
         destinationIcao: destAirport.icao,
@@ -336,6 +339,10 @@ export class TransportEngine {
     } else {
       return `${payload.amount.toLocaleString()} kg Air Cargo (${(payload.amount * 2.20462).toFixed(0)} lbs)`;
     }
+  }
+
+  static getAircraftPreset(aircraftId?: string | number, massKg?: number): AircraftTransportPreset {
+    return getAircraftTransportPreset(aircraftId, undefined, massKg);
   }
 }
 

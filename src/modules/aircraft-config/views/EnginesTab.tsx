@@ -3,27 +3,35 @@ import Notify from "../../../shared/Notify";
 import Props from "../../../shared/Props";
 import Input from "../../../components/Input";
 import ExpandMore from "../../../assets/icons/ExpandMore";
+import AircraftSetupStore from "../AircraftSetupStore";
 
 const log = Logger.create("Engines");
 const engineInputRefs = new Map<string, Map<string, InputRef>>();
 
 export const resetEngines = () => {
-  if (engineInputRefs.size === 0) {
-    Notify.errorNow("No engines to reset");
-    return;
-  }
+  // 1. Restore the live in-memory engine properties directly from the captured factory setup
+  const restoredCount = AircraftSetupStore.restoreEngines();
+
+  // 2. Update all visible input references with the pristine default values
   let resetCount = 0;
-  engineInputRefs.forEach((propsMap) => {
-    propsMap.forEach((ref) => {
-      if (ref && typeof ref.reset === "function") {
+  engineInputRefs.forEach((propsMap, engineKey) => {
+    const engineIndex = parseInt(engineKey.replace("engine_", ""), 10) || 0;
+    propsMap.forEach((ref, propName) => {
+      if (ref && typeof ref.resetToDefault === "function") {
+        const defaultVal = AircraftSetupStore.getEngineDefault(engineIndex, propName);
+        ref.resetToDefault(defaultVal);
+        resetCount++;
+      } else if (ref && typeof ref.reset === "function") {
         ref.reset();
         resetCount++;
       }
     });
   });
-  if (resetCount > 0) {
-    log.info(`Reset ${resetCount} engine properties to defaults`);
-    Notify.successNow(`${resetCount} engine properties reset to defaults`);
+
+  if (resetCount > 0 || restoredCount > 0) {
+    const total = Math.max(resetCount, restoredCount);
+    log.info(`Reset ${total} engine properties to factory defaults`);
+    Notify.successNow(`${total} engine properties reset to default aircraft setup`);
   } else {
     Notify.errorNow("No engine properties to reset");
   }

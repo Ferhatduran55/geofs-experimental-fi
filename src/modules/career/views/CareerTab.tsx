@@ -5,6 +5,7 @@ import { MarketEngine, type MarketTrendPoint } from "../MarketEngine";
 import { TransportEngine, type TransportMission } from "../TransportEngine";
 import { calculateDistanceNm, calculateBearingDeg, formatBearingWithCompass, formatAirportDisplay } from "../AirportDatabase";
 import Notify from "../../../shared/Notify";
+import Storage from "../../../shared/Storage";
 import ScenariosModal from "./ScenariosModal";
 import CustomScenarioModal from "./CustomScenarioModal";
 
@@ -103,6 +104,14 @@ export default async (module: CareerModule) => {
   let navTimer: number | null = null;
   onMount(() => {
     navTimer = window.setInterval(() => {
+      // Keep activeMission and balance strictly in sync with CareerModule
+      if (activeMission() !== module.currentMission) {
+        setActiveMission(module.currentMission);
+      }
+      if (balance() !== module.balance) {
+        setBalance(module.balance);
+      }
+
       const msn = module.currentMission;
       if (!msn) return;
 
@@ -161,6 +170,7 @@ export default async (module: CareerModule) => {
   const handleAbortContract = () => {
     module.currentMission = null;
     module.saveData();
+    Storage.write("career_current_mission", null);
     setActiveMission(null);
     Notify.warning("Contract aborted. Payload safely returned.", "Operations");
   };

@@ -117,23 +117,22 @@ export class RadarEngine {
 
   static getStyles(): string {
     return `
-      .efi-radar-background { position: relative; }
       .efi-radar-screen {
         position: absolute;
+        box-sizing: border-box;
         width: 200px;
         height: 200px;
         background: #020904;
         border-radius: 50%;
-        border: 3px solid #132a18;
-        box-shadow: inset 0 0 40px rgba(0, 255, 100, 0.08), inset 0 0 10px rgba(0, 255, 100, 0.15), 0 0 15px rgba(0, 0, 0, 0.7);
+        box-shadow: inset 0 0 0 3px #132a18, inset 0 0 40px rgba(0, 255, 100, 0.08), inset 0 0 10px rgba(0, 255, 100, 0.15), 0 0 15px rgba(0, 0, 0, 0.7);
         overflow: hidden;
       }
 
       /* Pure Monochromatic Land/Sea Map Canvas Layer */
       .efi-radar-map-canvas {
         position: absolute;
-        width: 200px;
-        height: 200px;
+        width: 100%;
+        height: 100%;
         top: 0;
         left: 0;
         pointer-events: none;
@@ -160,9 +159,9 @@ export class RadarEngine {
         left: 50%;
         transform: translate(-50%, -50%);
       }
-      .efi-radar-ring-1 { width: 33%; height: 33%; }
-      .efi-radar-ring-2 { width: 66%; height: 66%; }
-      .efi-radar-ring-3 { width: 95%; height: 95%; }
+      .efi-radar-ring-1 { width: 28.33%; height: 28.33%; }
+      .efi-radar-ring-2 { width: 56.67%; height: 56.67%; }
+      .efi-radar-ring-3 { width: 85%; height: 85%; }
       .efi-radar-crosshair-h, .efi-radar-crosshair-v {
         position: absolute;
         background: rgba(0, 255, 120, 0.16);
@@ -184,8 +183,8 @@ export class RadarEngine {
       /* SVG Vector Navigation Layer (Autopilot & Career lines) */
       .efi-radar-svg-layer {
         position: absolute;
-        width: 200px;
-        height: 200px;
+        width: 100%;
+        height: 100%;
         top: 0;
         left: 0;
         pointer-events: none;
@@ -723,7 +722,7 @@ export class RadarEngine {
 
     // Circular radar clip mask (NM range bounded)
     ctx.beginPath();
-    ctx.arc(100, 100, 95, 0, Math.PI * 2);
+    ctx.arc(100, 100, 85, 0, Math.PI * 2);
     ctx.clip();
 
     // Default Deep Water Background
@@ -850,8 +849,8 @@ export class RadarEngine {
       entry.labelEl.className = `efi-radar-blip-label ${labelColorClass}`;
       entry.labelEl.textContent = target.callsign;
 
-      entry.rootEl.style.left = `calc(50% + ${x.toFixed(1)}px)`;
-      entry.rootEl.style.top = `calc(50% + ${y.toFixed(1)}px)`;
+      entry.rootEl.style.left = `calc(50% + ${(x * 0.5).toFixed(2)}%)`;
+      entry.rootEl.style.top = `calc(50% + ${(y * 0.5).toFixed(2)}%)`;
 
       const targetOpacity = this.settings.blimpOpacity !== undefined ? this.settings.blimpOpacity : 0.9;
 
@@ -946,8 +945,8 @@ export class RadarEngine {
         this.airportDOMMap.set(icaoKey, el);
       }
 
-      el.style.left = `calc(50% + ${x.toFixed(1)}px)`;
-      el.style.top = `calc(50% + ${y.toFixed(1)}px)`;
+      el.style.left = `calc(50% + ${(x * 0.5).toFixed(2)}%)`;
+      el.style.top = `calc(50% + ${(y * 0.5).toFixed(2)}%)`;
     }
 
     for (const [icao, el] of this.airportDOMMap) {
@@ -1009,30 +1008,63 @@ export class RadarEngine {
     const targetX = cx + Math.cos(angleRad) * clampedDistPx;
     const targetY = cy + Math.sin(angleRad) * clampedDistPx;
 
-    // Cyan Dashed Dispatch Route Line from EXACT aircraft center (100, 100) to EXACT destination center (targetX, targetY)
-    const svgContent = `
-      <line x1="${cx}" y1="${cy}" x2="${targetX.toFixed(1)}" y2="${targetY.toFixed(1)}" stroke="#00e5ff" stroke-width="2.2" stroke-dasharray="4 3" opacity="0.95" />
-    `;
+    const rTarget = 9.5; // Radius of destination circle
+    let svgContent = "";
 
-    let labelsContent = "";
     if (normalizedDist <= 1.0) {
-      labelsContent = `
-        <div class="efi-radar-dest-tag" style="left: ${targetX.toFixed(1)}px; top: ${targetY.toFixed(1)}px;">
-          <div class="efi-radar-dest-circle"></div>
-          <span class="efi-radar-dest-tag-text">🎯 ${activeMission.destinationIcao} (${distNm}NM)</span>
-        </div>
+      // Line stops cleanly at circle perimeter
+      if (clampedDistPx > rTarget + 3) {
+        const startX = cx + Math.cos(angleRad) * 4;
+        const startY = cy + Math.sin(angleRad) * 4;
+        const endX = targetX - Math.cos(angleRad) * rTarget;
+        const endY = targetY - Math.sin(angleRad) * rTarget;
+
+        svgContent += `
+          <line x1="${startX.toFixed(1)}" y1="${startY.toFixed(1)}" x2="${endX.toFixed(1)}" y2="${endY.toFixed(1)}" stroke="#00e5ff" stroke-width="2.2" stroke-dasharray="4 3" opacity="0.95" />
+        `;
+      }
+
+      // Checkpoint circle matching navigation waypoint: outer dashed ring + inner ring + bullseye dot
+      svgContent += `
+        <circle cx="${targetX.toFixed(1)}" cy="${targetY.toFixed(1)}" r="${rTarget}" fill="rgba(0, 229, 255, 0.18)" stroke="#00e5ff" stroke-width="1.8" stroke-dasharray="3 2" />
+        <circle cx="${targetX.toFixed(1)}" cy="${targetY.toFixed(1)}" r="4.5" fill="none" stroke="#00e5ff" stroke-width="1.2" opacity="0.8" />
+        <circle cx="${targetX.toFixed(1)}" cy="${targetY.toFixed(1)}" r="2" fill="#00e5ff" />
+      `;
+
+      // Clean ICAO text label avoiding radar border overflow
+      const textY = targetY > 165 ? targetY - rTarget - 4 : targetY + rTarget + 10;
+      svgContent += `
+        <text x="${targetX.toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" fill="#00e5ff" font-family="monospace" font-size="8" font-weight="bold" filter="drop-shadow(0 0 3px black)">${activeMission.destinationIcao} (${distNm}NM)</text>
       `;
     } else {
-      // Pointing arrow at edge of radar ring with distance
-      labelsContent = `
-        <div class="efi-radar-dest-tag" style="left: ${targetX.toFixed(1)}px; top: ${targetY.toFixed(1)}px;">
-          <span class="efi-radar-dest-tag-text" style="font-size: 7.5px; color: #00e5ff;">▲ ${activeMission.destinationIcao} ${distNm}NM</span>
-        </div>
+      // Destination is outside current radar range:
+      // Dashed line to outer radar ring, plus directional arrow at edge
+      const edgeDistPx = radius;
+      const edgeX = cx + Math.cos(angleRad) * edgeDistPx;
+      const edgeY = cy + Math.sin(angleRad) * edgeDistPx;
+      const startX = cx + Math.cos(angleRad) * 4;
+      const startY = cy + Math.sin(angleRad) * 4;
+      const lineEndX = edgeX - Math.cos(angleRad) * 6;
+      const lineEndY = edgeY - Math.sin(angleRad) * 6;
+
+      svgContent += `
+        <line x1="${startX.toFixed(1)}" y1="${startY.toFixed(1)}" x2="${lineEndX.toFixed(1)}" y2="${lineEndY.toFixed(1)}" stroke="#00e5ff" stroke-width="2" stroke-dasharray="4 3" opacity="0.8" />
+        <g transform="translate(${edgeX.toFixed(1)}, ${edgeY.toFixed(1)}) rotate(${relBearing.toFixed(1)})">
+          <polygon points="0,-7 -5,4 5,4" fill="#00e5ff" stroke="#000" stroke-width="0.8" />
+        </g>
+      `;
+
+      // Label placed slightly inside the ring
+      const labelDistPx = radius - 14;
+      const labelX = cx + Math.cos(angleRad) * labelDistPx;
+      const labelY = cy + Math.sin(angleRad) * labelDistPx + 3;
+      svgContent += `
+        <text x="${labelX.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" fill="#00e5ff" font-family="monospace" font-size="7.5" font-weight="bold" filter="drop-shadow(0 0 3px black)">${activeMission.destinationIcao} ${distNm}NM</text>
       `;
     }
 
     svgLayer.innerHTML = svgContent;
-    overlayLabels.innerHTML = labelsContent;
+    overlayLabels.innerHTML = "";
   }
 
   /**

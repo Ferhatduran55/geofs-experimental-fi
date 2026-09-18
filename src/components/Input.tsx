@@ -28,29 +28,37 @@ export default (props: InputProps) => {
   let lastCommittedValue: any = null;
 
   const commitStackedChange = (value: number) => {
+    // 1. Immediately write to in-memory GeoFS resource as a strict number!
+    const strictNumber =
+      props.type === "int" ? Math.round(Number(value)) : Number(value);
+
+    try {
+      const res = resource();
+      if (res && props.name) {
+        (res as any)[props.name] = strictNumber;
+      }
+
+      if (props.onChange && strictNumber !== lastCommittedValue) {
+        props.onChange(strictNumber);
+      }
+    } catch (e) {
+      log.error("Failed to commit physical input write:", e);
+    }
+
+    // 2. Debounce notifications and scheduleApply by 80ms
     if (stackTimeout) {
       clearTimeout(stackTimeout);
       stackTimeout = null;
     }
 
-    // Debounce physical write and notifications by 80ms so rapid arrow presses stay buttery smooth
     stackTimeout = window.setTimeout(() => {
       try {
-        const res = resource();
-        if (res && props.name) {
-          (res as any)[props.name] = value;
-        }
-
-        if (props.onChange && value !== lastCommittedValue) {
-          props.onChange(value);
-        }
-
         if (notifyMode === "input" || notifyMode === "both") {
-          Notify.success(`${props.name} set to ${value}`, notifyCategory);
+          Notify.success(`${props.name} set to ${strictNumber}`, notifyCategory);
         }
 
-        scheduleApply(value);
-        lastCommittedValue = value;
+        scheduleApply(strictNumber);
+        lastCommittedValue = strictNumber;
       } catch (e) {
         log.error("Failed to commit stacked input change:", e);
       } finally {
@@ -112,24 +120,33 @@ export default (props: InputProps) => {
     }
   };
 
-  const resetToDefault = () => {
-    if (defaultValue === undefined) return;
+  const resetToDefault = (overrideValue?: any) => {
     if (!reference) return;
     if (!isResourceValid() && props.value === undefined) return;
 
-    const parsedValue = prototypeOfValue() === "number" ? parseFloat(defaultValue) : defaultValue;
+    const targetVal = overrideValue !== undefined ? overrideValue : defaultValue;
+    if (targetVal === undefined) return;
 
-    if (reference) reference.value = parsedValue as any;
+    const parsedValue =
+      prototypeOfValue() === "number"
+        ? (props.type === "int" ? Math.round(Number(targetVal)) : Number(targetVal))
+        : targetVal;
+
+    reference.value = String(parsedValue);
 
     const res = resource();
     if (res && props.name) {
       (res as any)[props.name] = parsedValue;
     }
 
+    if (prototypeOfValue() === "number") {
+      calculateMax(parsedValue);
+    }
+
     if (props.onChange) props.onChange(parsedValue);
     if (props.onApply) props.onApply(parsedValue);
-
-    if (prototypeOfValue() === "number") calculateMax();
+    scheduleApply(parsedValue);
+    lastCommittedValue = parsedValue;
   };
 
   try {
@@ -170,13 +187,13 @@ export default (props: InputProps) => {
       const res = resource();
       if (!res || !props.name || !(props.name in res)) return {};
 
-      const resourceValue = (res as any)[props.name];
+      const resourceValue = Number((res as any)[props.name]) || 0;
       const isNegative = resourceValue < 0;
 
       return {
-        min: isNegative ? String(resourceValue * 2) : "0",
+        min: props.min !== undefined ? String(props.min) : (isNegative ? String(Math.min(-100000, resourceValue * 10)) : "0"),
         value: resourceValue,
-        max: isNegative ? "-1" : String(resourceValue * 2),
+        max: props.max !== undefined ? String(props.max) : (isNegative ? "0" : String(Math.max(100000, resourceValue * 10))),
         step: props.type == "float" ? "0.1" : "1",
       };
     }
@@ -201,7 +218,7 @@ export default (props: InputProps) => {
     return value >= min && value <= max;
   };
 
-  const calculateMax = () => {
+  const calculateMax = (candidateValue?: number) => {
     if (!reference) return;
 
     if (props.min !== undefined && props.max !== undefined) {
@@ -220,34 +237,39 @@ export default (props: InputProps) => {
     const res = resource();
     if (!res || !props.name || !(props.name in res)) return;
 
-    const currentValue = Number((res as any)[props.name]) || 0;
-    const isNegative = currentValue < 0;
+    const resourceValue = Number((res as any)[props.name]) || 0;
+    const testValue = candidateValue !== undefined && !isNaN(candidateValue) ? candidateValue : resourceValue;
 
-    if (isNegative) {
-      reference.min = String(Math.min(-100000, currentValue * 10));
-      reference.max = "0";
+    if (props.min !== undefined) {
+      reference.min = String(props.min);
     } else {
-      reference.min = "0";
-      reference.max = String(Math.max(100000, currentValue * 10));
+      const minBound = Math.min(0, resourceValue, testValue);
+      reference.min = minBound < 0 ? String(Math.min(-100000, minBound * 10)) : "0";
+    }
+
+    if (props.max !== undefined) {
+      reference.max = String(props.max);
+    } else {
+      const maxBound = Math.max(0, resourceValue, testValue);
+      reference.max = String(Math.max(100000, maxBound * 10));
     }
 
     reference.placeholder = `Min ${reference.min}, Max ${reference.max}`;
   };
 
-  const reset = () => {
-    if (!isResourceValid()) return;
-    if (defaultValue === undefined) return notify("No default value set.", "error");
+  const reset = (overrideValue?: any) => {
+    if (!isResourceValid() && props.value === undefined) return;
+    const targetVal = overrideValue !== undefined ? overrideValue : defaultValue;
+    if (targetVal === undefined) return notify("No default value set.", "error");
 
-    const res = resource();
-    if (!res || !props.name) return;
-
-    reference!.value = defaultValue as any;
-    (res as any)[props.name] = reference!.value;
-    notify(`${props.name} reset to ${reference!.value}`, "info");
+    resetToDefault(overrideValue);
+    if (reference) {
+      notify(`${props.name} reset to ${reference.value}`, "info");
+    }
   };
 
   if (props.ref) {
-    props.ref({ reset: reset, resetToDefault });
+    props.ref({ reset: reset, resetToDefault: resetToDefault, setValue: resetToDefault });
   }
 
   const apply = (event: KeyboardEvent | InputEvent) => {
@@ -280,6 +302,10 @@ export default (props: InputProps) => {
           const newValue = currentValue + direction * totalModifier;
           reference!.value = newValue.toFixed(decimals);
 
+          if (props.min === undefined || props.max === undefined) {
+            calculateMax(newValue);
+          }
+
           if (!between()) {
             if (!isResourceValid()) return;
             const res = resource();
@@ -289,10 +315,21 @@ export default (props: InputProps) => {
             return notify(`Value must be between ${reference?.min} and ${reference?.max}`, "error");
           }
 
-          calculateMax();
+          calculateMax(newValue);
           commitStackedChange(parseFloat(reference!.value));
         }
       } else if (event instanceof InputEvent) {
+        if (!reference) return;
+        const rawText = reference.value.trim();
+        if (rawText === "" || rawText === "-") {
+          return;
+        }
+
+        const numericValue = parseFloat(rawText);
+        if (!isNaN(numericValue) && (props.min === undefined || props.max === undefined)) {
+          calculateMax(numericValue);
+        }
+
         if (!between()) {
           if (!isResourceValid()) return;
           const res = resource();
@@ -302,8 +339,7 @@ export default (props: InputProps) => {
           return notify(`Value must be between ${reference?.min} and ${reference?.max}`, "error");
         }
 
-        const numericValue = parseFloat(reference!.value);
-        calculateMax();
+        calculateMax(numericValue);
         commitStackedChange(numericValue);
       }
     }
@@ -324,6 +360,10 @@ export default (props: InputProps) => {
 
     reference.value = newValue.toFixed(decimals);
 
+    if (props.min === undefined || props.max === undefined) {
+      calculateMax(newValue);
+    }
+
     if (!between()) {
       const res = resource();
       if (res && props.name && props.name in res) {
@@ -332,7 +372,7 @@ export default (props: InputProps) => {
       return notify(`Value must be between ${reference.min} and ${reference.max}`, "error");
     }
 
-    calculateMax();
+    calculateMax(newValue);
     commitStackedChange(parseFloat(reference.value));
   };
 
@@ -351,6 +391,10 @@ export default (props: InputProps) => {
 
     reference.value = newValue.toFixed(decimals);
 
+    if (props.min === undefined || props.max === undefined) {
+      calculateMax(newValue);
+    }
+
     if (!between()) {
       const res = resource();
       if (res && props.name && props.name in res) {
@@ -359,7 +403,7 @@ export default (props: InputProps) => {
       return notify(`Value must be between ${reference.min} and ${reference.max}`, "error");
     }
 
-    calculateMax();
+    calculateMax(newValue);
     commitStackedChange(parseFloat(reference.value));
   };
 
@@ -579,6 +623,18 @@ export default (props: InputProps) => {
           ref={reference}
           onInput={(e: InputEvent) => apply(e)}
           onKeyDown={(e: KeyboardEvent) => apply(e)}
+          onBlur={() => {
+            if (prototypeOfValue() === "number" && reference) {
+              const rawText = reference.value.trim();
+              if (rawText === "" || rawText === "-" || isNaN(parseFloat(rawText))) {
+                const res = resource();
+                if (res && props.name && props.name in res) {
+                  reference.value = (res as any)[props.name];
+                  calculateMax();
+                }
+              }
+            }
+          }}
         />
         <button
           type="button"

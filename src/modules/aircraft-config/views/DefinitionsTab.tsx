@@ -2,25 +2,32 @@ import Logger from "../../../shared/Logger";
 import Notify from "../../../shared/Notify";
 import Props from "../../../shared/Props";
 import Input from "../../../components/Input";
+import AircraftSetupStore from "../AircraftSetupStore";
 
 const log = Logger.create("Definitions");
 const inputRefs = new Map<string, InputRef>();
 
 export const resetDefinitions = () => {
-  if (inputRefs.size === 0) {
-    Notify.errorNow("No definitions to reset");
-    return;
-  }
+  // 1. Restore the live in-memory definition properties directly from the captured factory setup
+  const restoredCount = AircraftSetupStore.restoreDefinitions();
+
+  // 2. Update all visible input references with the pristine default values
   let resetCount = 0;
-  inputRefs.forEach((ref) => {
-    if (ref && typeof ref.reset === "function") {
+  inputRefs.forEach((ref, propName) => {
+    if (ref && typeof ref.resetToDefault === "function") {
+      const defaultVal = AircraftSetupStore.getDefinitionDefault(propName);
+      ref.resetToDefault(defaultVal);
+      resetCount++;
+    } else if (ref && typeof ref.reset === "function") {
       ref.reset();
       resetCount++;
     }
   });
-  if (resetCount > 0) {
-    log.info(`Reset ${resetCount} definition properties to defaults`);
-    Notify.successNow(`${resetCount} definition properties reset to defaults`);
+
+  if (resetCount > 0 || restoredCount > 0) {
+    const total = Math.max(resetCount, restoredCount);
+    log.info(`Reset ${total} definition properties to factory defaults`);
+    Notify.successNow(`${total} definition properties reset to default aircraft setup`);
   } else {
     Notify.errorNow("No definition properties to reset");
   }
