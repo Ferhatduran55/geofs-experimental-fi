@@ -39,6 +39,8 @@ export class CoreEngine implements ICoreEngine {
 
     log.info(`Booting Core Engine v${this.version}...`);
 
+    (unsafeWindow as any).__efiCore = this;
+
     // 1. Initialize Storage
     Storage.config(this.version, { prefix: "geofs_efi_" });
 

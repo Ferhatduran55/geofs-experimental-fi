@@ -1,5 +1,5 @@
 import { defs } from "../../../assets/filters/AircraftMarkerDefs";
-import Marker from "../../../classes/Marker";
+import Marker from "../../../shared/Marker";
 
 export default new Marker({
   width: 40,

@@ -504,8 +504,160 @@ declare namespace geofs {
     let canvas: any;
     let resizeHandlers: Record<string, Function>;
     let resizeHandlersIndex: number;
-    let preferences: any;
-    let preferencesDefault: any;
+
+    interface PreferencesKeyboard {
+        sensitivity: number;
+        exponential: number;
+        mixYawRoll: boolean;
+        recenterPitch: boolean;
+        recenterRoll: boolean;
+        steerWithRoll: boolean;
+        keys: Record<string, { keycode: number; label: string }>;
+    }
+
+    interface PreferencesMouse {
+        sensitivity: number;
+        exponential: number;
+        reverse: boolean;
+        mixYawRoll: boolean;
+        steerWithRoll: boolean;
+    }
+
+    interface PreferencesJoystick {
+        sensitivity: number;
+        exponential: number;
+        mixYawRoll: boolean;
+        steerWithRoll: boolean;
+        lowerThrottleReverse: number;
+        axis: { pitch: number; roll: number; yaw: number; throttle: number };
+        multiplier: { pitch: boolean; roll: boolean; yaw: boolean; throttle: boolean };
+        calibration: Record<string, any>;
+        buttons: Record<number | string, string>;
+    }
+
+    interface PreferencesOrientation {
+        sensitivity: number;
+        exponential: number;
+        mixYawRoll: boolean;
+        steerWithRoll: boolean;
+        axis: { pitch: number; roll: number; yaw: number };
+        multiplier: { pitch: boolean; roll: boolean; yaw: boolean };
+    }
+
+    interface PreferencesTouch {
+        sensitivity: number;
+        exponential: number;
+        mixYawRoll: boolean;
+        steerWithRoll: boolean;
+        axis: { pitch: number; roll: number; yaw: number };
+        multiplier: { pitch: boolean; roll: boolean; yaw: boolean };
+    }
+
+    interface PreferencesCamera {
+        headMotion: boolean;
+        followMotion: boolean;
+    }
+
+    interface PreferencesWeatherAdvanced {
+        clouds: number;
+        fog: number;
+        windSpeed: number;
+        windDirection: number;
+        turbulences: number;
+    }
+
+    interface PreferencesWeather {
+        sun: boolean;
+        localTime: number;
+        season: number;
+        manual: boolean;
+        quality: number;
+        advanced: PreferencesWeatherAdvanced;
+    }
+
+    interface PreferencesGraphicsAdvanced {
+        resolutionScale: number;
+        viewingDistance: number;
+        tileCacheSize: number;
+        fxaa: boolean;
+        msaaSamples: number;
+        globeLighting: boolean;
+        waterSSR: boolean;
+        PBRshaders: boolean;
+        shadowQuality: number;
+        dropShadow: boolean;
+        softShadows: boolean;
+        cloudDensity: number;
+    }
+
+    interface PreferencesGraphics {
+        quality: number;
+        slaveQuality?: number;
+        enhanceColors: number;
+        volumetricClouds: boolean;
+        advancedAtmosphere: boolean;
+        waterEffect: boolean;
+        cityLights: boolean;
+        vegetation: boolean;
+        buildings: boolean;
+        contrails: boolean;
+        dataProvider: string;
+        advanced: PreferencesGraphicsAdvanced;
+        runways?: boolean;
+    }
+
+    interface PreferencesAudio {
+        sound: boolean;
+        volume: number;
+        alarms: number;
+    }
+
+    interface PreferencesInterface {
+        transparent: boolean;
+        showYokeCursor: boolean;
+        drawFlightPath: boolean;
+        recenterMap: boolean;
+    }
+
+    interface PreferencesCopilot {
+        enabled: boolean;
+        voice: string | null;
+        volume: number;
+        readingFrequency: number;
+    }
+
+    interface Preferences {
+        aircraft: string;
+        coordinates: string;
+        controlMode: "mouse" | "keyboard" | "joystick" | "orientation" | "touch" | string;
+        keyboard: PreferencesKeyboard;
+        mouse: PreferencesMouse;
+        joystick: PreferencesJoystick;
+        orientation: PreferencesOrientation;
+        touch: PreferencesTouch;
+        camera: PreferencesCamera;
+        weather: PreferencesWeather;
+        graphics: PreferencesGraphics;
+        audio: PreferencesAudio;
+        interface: PreferencesInterface;
+        copilot: PreferencesCopilot;
+        simBriefUsername?: string;
+        crashDetection: boolean;
+        showPapi: boolean;
+        multiplayer: boolean;
+        showCommunityMultiplayer: boolean;
+        adsb: boolean;
+        chat: boolean;
+        sound: boolean;
+        volume: number;
+        recorderLength: number;
+        simulationSpeed: number;
+        mobile?: boolean;
+        [key: string]: any;
+    }
+
+    let preferences: Preferences;
+    let preferencesDefault: Preferences;
     let preferencesKeycodeLookup: Record<number, string>;
     let localStorage: Storage;
 

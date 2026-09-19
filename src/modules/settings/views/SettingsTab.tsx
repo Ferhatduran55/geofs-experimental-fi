@@ -1,14 +1,17 @@
-import { createSignal } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import Notify from "../../../shared/Notify";
 import Storage from "../../../shared/Storage";
 import Logger from "../../../shared/Logger";
 import { reloadUI } from "../../../layouts/Assistant";
 import Input from "../../../components/Input";
 import { core } from "../../../core/CoreEngine";
-import FuelEngine from "../../fuel/FuelEngine";
-import MarkerEngine from "../../markers/MarkerEngine";
-import RadarEngine from "../../radar/RadarEngine";
 import SaveManager from "../../aircraft-config/SaveManager";
+import ConfigurationManager from "../ConfigurationManager";
+import PresetBrowserModal from "./PresetBrowserModal";
+import FuelSettingsPanel from "../../fuel/views/FuelSettingsPanel";
+import MarkersSettingsPanel from "../../markers/views/MarkersSettingsPanel";
+import RadarSettingsPanel from "../../radar/views/RadarSettingsPanel";
+import DevSettingsPanel from "../../developer/views/DevSettingsPanel";
 
 const log = Logger.create("SettingsTab");
 
@@ -16,87 +19,141 @@ const [fuelSystemEnabled, setFuelSystemEnabled] = createSignal(core.modules.isEn
 const [aircraftMarkersEnabled, setAircraftMarkersEnabled] = createSignal(core.modules.isEnabled("markers"));
 const [aircraftRadarEnabled, setAircraftRadarEnabled] = createSignal(core.modules.isEnabled("radar"));
 const [careerSystemEnabled, setCareerSystemEnabled] = createSignal(core.modules.isEnabled("career"));
+const [definitionsEnabled, setDefinitionsEnabled] = createSignal(core.modules.isEnabled("definitions"));
+const [enginesEnabled, setEnginesEnabled] = createSignal(core.modules.isEnabled("engines"));
+const [marketEnabled, setMarketEnabled] = createSignal(core.modules.isEnabled("market"));
+const [transportEnabled, setTransportEnabled] = createSignal(core.modules.isEnabled("transport"));
 const [cancelOnCrash, setCancelOnCrash] = createSignal(true);
-const [showRadarDestination, setShowRadarDestination] = createSignal(true);
-const [showRadarAirports, setShowRadarAirports] = createSignal(true);
-const [showRadarTerrainMap, setShowRadarTerrainMap] = createSignal(true);
-const [debugModeEnabled, setDebugModeEnabled] = createSignal(false);
+const [showPresetBrowser, setShowPresetBrowser] = createSignal(false);
 
 const syncStatesWithCore = async () => {
   setFuelSystemEnabled(core.modules.isEnabled("fuel"));
   setAircraftMarkersEnabled(core.modules.isEnabled("markers"));
   setAircraftRadarEnabled(core.modules.isEnabled("radar"));
   setCareerSystemEnabled(core.modules.isEnabled("career"));
+  setDefinitionsEnabled(core.modules.isEnabled("definitions"));
+  setEnginesEnabled(core.modules.isEnabled("engines"));
+  setMarketEnabled(core.modules.isEnabled("market"));
+  setTransportEnabled(core.modules.isEnabled("transport"));
 
   const savedCrash = await Storage.get("cancel_mission_on_crash");
   setCancelOnCrash(savedCrash !== false);
-
-  const savedRadarDest = await Storage.get("radar_show_destination");
-  setShowRadarDestination(savedRadarDest !== false);
-
-  const savedRadarAp = await Storage.get("radar_show_airports");
-  setShowRadarAirports(savedRadarAp !== false);
-
-  const savedRadarTerrain = await Storage.get("radar_show_terrain_map");
-  setShowRadarTerrainMap(savedRadarTerrain !== false);
 };
 
 const toggleModule = async (moduleId: string, label: string) => {
   const enabled = await core.modules.toggle(moduleId);
-  syncStatesWithCore();
+  await syncStatesWithCore();
   Notify.successNow(`${label} ${enabled ? "enabled" : "disabled"}`);
   reloadUI();
 };
 
+const toggleDependentModule = async (moduleId: string, label: string) => {
+  if (!careerSystemEnabled()) {
+    Notify.warning(`Cannot toggle ${label}: Career System is currently disabled!`, "Dependencies");
+    return;
+  }
+  await toggleModule(moduleId, label);
+};
+
 export default async () => {
-  return await new Promise(async (resolve, reject) => {
-    try {
-      await syncStatesWithCore();
-      const savedDebug = await Storage.get("experimental_debug_mode");
-      if (typeof savedDebug === "boolean") {
-        setDebugModeEnabled(savedDebug);
-        Logger.setDevMode(savedDebug);
-      }
+  try {
+    await syncStatesWithCore();
 
-      const response = [];
+    return [
+      <div class="space-y-4 font-sans pb-4">
+        {/* Preset Browser & Configuration Profiles Hub */}
+        <div class="p-3 bg-gradient-to-r from-gray-900 via-gray-850 to-gray-900 border border-gray-700/80 rounded-xl shadow-lg space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-gray-900 dark:text-white text-sm flex items-center space-x-1.5">
+                <span>⚙️</span>
+                <span>Configuration & Preset Hub</span>
+              </h3>
+              <p class="text-[11px] text-gray-400">Save and load individual aircraft setups or whole addon state snapshots</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPresetBrowser(true)}
+              class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg shadow transition-all active:scale-95 flex items-center space-x-1.5"
+            >
+              <span>📁</span>
+              <span>Browse Presets</span>
+            </button>
+          </div>
 
-      // Aircraft Configuration (Save/Load/Delete)
-      response.push(
-        <div class="space-y-2 mb-4 font-sans">
-          <h3 class="font-semibold text-gray-900 dark:text-white text-sm">Aircraft Configuration</h3>
-          <div class="flex flex-wrap gap-2">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
             <button
-              class="flex-1 min-w-[80px] border-0 rounded-md px-3 py-2 bg-emerald-600 text-white shadow-md hover:bg-emerald-700 hover:cursor-pointer transition-colors text-sm font-medium"
-              onclick={() => SaveManager.save()}
-              title="Save current aircraft configuration (definition + engines)"
+              type="button"
+              class="px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-medium transition-colors flex items-center justify-center space-x-1"
+              onClick={async () => {
+                await ConfigurationManager.saveAircraftProfile();
+                await syncStatesWithCore();
+              }}
+              title="Quick save current aircraft physics/engines as an Aircraft Profile"
             >
-              Save
+              <span>✈️</span>
+              <span>Save Aircraft</span>
             </button>
+
             <button
-              class="flex-1 min-w-[80px] border-0 rounded-md px-3 py-2 bg-amber-600 text-white shadow-md hover:bg-amber-700 hover:cursor-pointer transition-colors text-sm font-medium"
-              onclick={() => SaveManager.load()}
-              title="Load saved aircraft configuration"
+              type="button"
+              class="px-2.5 py-1.5 rounded-lg bg-indigo-700/80 hover:bg-indigo-600 text-white font-medium transition-colors flex items-center justify-center space-x-1"
+              onClick={async () => {
+                await ConfigurationManager.saveGlobalProfile();
+                await syncStatesWithCore();
+              }}
+              title="Quick save current addon module states and settings as a Global Profile"
             >
-              Load
+              <span>🌐</span>
+              <span>Save Suite</span>
             </button>
+
             <button
-              class="flex-1 min-w-[80px] border-0 rounded-md px-3 py-2 bg-red-600 text-white shadow-md hover:bg-red-700 hover:cursor-pointer transition-colors text-sm font-medium"
-              onclick={() => SaveManager.delete()}
-              title="Delete saved aircraft configuration"
+              type="button"
+              class="px-2.5 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-750 text-gray-200 border border-gray-700 transition-colors flex items-center justify-center space-x-1"
+              onClick={() => SaveManager.load()}
+              title="Quick load default slot for current aircraft"
             >
-              Delete
+              <span>⚡</span>
+              <span>Quick Load</span>
+            </button>
+
+            <button
+              type="button"
+              class="px-2.5 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 transition-colors flex items-center justify-center space-x-1"
+              onClick={() => SaveManager.delete()}
+              title="Delete default slot for current aircraft"
+            >
+              <span>🗑️</span>
+              <span>Clear Slot</span>
             </button>
           </div>
         </div>
-      );
 
-      response.push(
-        <h3 class="font-semibold text-gray-900 dark:text-white text-sm mt-4">Core Modules</h3>
-      );
+        {/* Core Modules Toggles */}
+        <div class="space-y-3">
+          <h3 class="font-semibold text-gray-900 dark:text-white text-sm">Core Modules</h3>
 
-      // Core Modules List with Input Component
-      response.push(
-        <div class="space-y-3 font-sans">
+          <Input
+            type="boolean"
+            name="mod_definitions"
+            label="Aircraft Definitions"
+            comment="Editable aerodynamic, mass, and performance parameters for active aircraft"
+            value={definitionsEnabled()}
+            onChange={() => toggleModule("definitions", "Aircraft Definitions")}
+            notifyMode="none"
+          />
+
+          <Input
+            type="boolean"
+            name="mod_engines"
+            label="Aircraft Engines"
+            comment="Multi-engine thrust, RPM, and turbine tuning panel"
+            value={enginesEnabled()}
+            onChange={() => toggleModule("engines", "Aircraft Engines")}
+            notifyMode="none"
+          />
+
           <Input
             type="boolean"
             name="mod_fuel"
@@ -136,13 +193,31 @@ export default async () => {
             onChange={() => toggleModule("career", "Career System")}
             notifyMode="none"
           />
-        </div>
-      );
 
-      // Career Module Settings
-      if (careerSystemEnabled()) {
-        response.push(
-          <div class="mt-4 space-y-3 font-sans">
+          <Input
+            type="boolean"
+            name="mod_market"
+            label={careerSystemEnabled() ? "Aviation Market Engine" : "Aviation Market Engine 🔒 (Requires Career)"}
+            comment="Real-time passenger, cargo, and jet fuel rate indices"
+            value={marketEnabled()}
+            onChange={() => toggleDependentModule("market", "Market Engine")}
+            notifyMode="none"
+          />
+
+          <Input
+            type="boolean"
+            name="mod_transport"
+            label={careerSystemEnabled() ? "Procedural Flight Transport" : "Procedural Flight Transport 🔒 (Requires Career)"}
+            comment="Dynamic procedural transport mission generator and safe runway launcher"
+            value={transportEnabled()}
+            onChange={() => toggleDependentModule("transport", "Transport Engine")}
+            notifyMode="none"
+          />
+        </div>
+
+        {/* Career Module Settings */}
+        <Show when={careerSystemEnabled()}>
+          <div class="mt-4 space-y-3">
             <h3 class="font-semibold text-gray-900 dark:text-white text-sm">Career & Navigation Settings</h3>
             <Input
               type="boolean"
@@ -158,328 +233,39 @@ export default async () => {
               notifyMode="none"
             />
           </div>
-        );
-      }
+        </Show>
 
-      // Fuel Settings Section if enabled
-      if (fuelSystemEnabled()) {
-        const [capacityMult, setCapacityMult] = createSignal(FuelEngine.capacityMultiplier);
-        const [consumptionMult, setConsumptionMult] = createSignal(FuelEngine.consumptionMultiplier);
+        {/* Modular Fuel Settings Panel */}
+        <Show when={fuelSystemEnabled()}>
+          <FuelSettingsPanel />
+        </Show>
 
-        response.push(
-          <div class="mt-4 space-y-3 font-sans">
-            <h3 class="font-semibold text-gray-900 dark:text-white text-sm">Fuel System Tuning</h3>
+        {/* Modular Markers Settings Panel */}
+        <Show when={aircraftMarkersEnabled()}>
+          <MarkersSettingsPanel />
+        </Show>
 
-            <div class="p-3 rounded-md bg-amber-100/50 dark:bg-amber-900/30 border border-amber-300/50 dark:border-amber-700/50 space-y-4">
-              <Input
-                type="range"
-                name="capacity_multiplier"
-                min={0.5}
-                max={2.0}
-                step={0.05}
-                value={capacityMult()}
-                onChange={(v: number) => {
-                  setCapacityMult(v);
-                  FuelEngine.setCapacityMultiplier(v);
-                }}
-                notifyMode={"none"}
-                minLabel={"50% (Less)"}
-                maxLabel={"200% (More)"}
-                showLimits={true}
-                comment={"Capacity Scale = Predefined Aircraft Tank × Multiplier"}
-                valueFormatter={(v) => `${(Number(v) * 100).toFixed(0)}% (${Number(v).toFixed(2)}x)`}
-              />
+        {/* Modular Radar Settings Panel */}
+        <Show when={aircraftRadarEnabled()}>
+          <RadarSettingsPanel />
+        </Show>
 
-              <Input
-                type="range"
-                name="consumption_multiplier"
-                min={0.2}
-                max={3.0}
-                step={0.05}
-                value={consumptionMult()}
-                onChange={(v: number) => {
-                  setConsumptionMult(v);
-                  FuelEngine.setConsumptionMultiplier(v);
-                }}
-                notifyMode={"none"}
-                minLabel={"20% (Eco)"}
-                maxLabel={"300% (Burn)"}
-                showLimits={true}
-                comment={"Burn Rate Scale = Authentic Idle & Cruise Flow × Multiplier"}
-                valueFormatter={(v) => `${(Number(v) * 100).toFixed(0)}% (${Number(v).toFixed(2)}x)`}
-              />
+        {/* Modular Developer & Diagnostics Panel */}
+        <DevSettingsPanel />
 
-              <button
-                onclick={() => {
-                  setCapacityMult(1.0);
-                  setConsumptionMult(1.0);
-                  FuelEngine.setCapacityMultiplier(1.0);
-                  FuelEngine.setConsumptionMultiplier(1.0);
-                  Notify.successNow("Fuel settings reset to 1.0x factory defaults");
-                }}
-                class="w-full px-3 py-2 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md transition-colors font-medium"
-              >
-                Reset Fuel to 1.0x Defaults
-              </button>
-            </div>
-          </div>
-        );
-      }
-
-      // Marker Settings Section if enabled
-      if (aircraftMarkersEnabled()) {
-        const settings = MarkerEngine.settings;
-        const [selfColor, setSelfColorState] = createSignal(settings.selfColor);
-        const [otherColor, setOtherColorState] = createSignal(settings.otherColor);
-        const [strokeColor, setStrokeColorState] = createSignal(settings.strokeColor);
-
-        response.push(
-          <div class="mt-4 space-y-3 font-sans">
-            <h3 class="font-semibold text-gray-900 dark:text-white text-sm">Aircraft Markers Settings</h3>
-
-            <div class="p-3 rounded-md bg-blue-100/50 dark:bg-blue-900/30 border border-blue-300/50 dark:border-blue-700/50 space-y-3">
-              <Input
-                type="color"
-                name="marker_self_color"
-                value={selfColor()}
-                onChange={(v: string) => {
-                  setSelfColorState(v);
-                  MarkerEngine.setSelfColor(v);
-                }}
-                notifyMode={"none"}
-              />
-
-              <Input
-                type="color"
-                name="marker_other_color"
-                value={otherColor()}
-                onChange={(v: string) => {
-                  setOtherColorState(v);
-                  MarkerEngine.setOtherColor(v);
-                }}
-                notifyMode={"none"}
-              />
-
-              <Input
-                type="color"
-                name="marker_stroke_color"
-                value={strokeColor()}
-                onChange={(v: string) => {
-                  setStrokeColorState(v);
-                  MarkerEngine.setStrokeColor(v);
-                }}
-                notifyMode={"none"}
-              />
-
-              <button
-                onclick={() => {
-                  setSelfColorState("#ffc107");
-                  setOtherColorState("#3155B1");
-                  setStrokeColorState("#ffffff");
-                  MarkerEngine.resetSettings();
-                  Notify.successNow("Marker settings reset to defaults");
-                }}
-                class="w-full px-3 py-2 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md transition-colors font-medium"
-              >
-                Reset Colors to Defaults
-              </button>
-            </div>
-          </div>
-        );
-      }
-
-      // Radar Settings Section if enabled
-      if (aircraftRadarEnabled()) {
-        const radarSettings = RadarEngine.settings;
-        const [radarRange, setRadarRangeState] = createSignal(radarSettings.range);
-        const [showLabels, setShowLabelsState] = createSignal(radarSettings.showLabels);
-        const [sweepSpeed, setSweepSpeedState] = createSignal(radarSettings.sweepSpeed);
-        const [showTraffic, setShowTrafficState] = createSignal(radarSettings.showTraffic);
-        const [airborneOnly, setAirborneOnlyState] = createSignal(radarSettings.airborneTrafficOnly);
-        const [blimpEffect, setBlimpEffectState] = createSignal(radarSettings.blimpEffect);
-        const [blimpOpacity, setBlimpOpacityState] = createSignal(radarSettings.blimpOpacity || 0.9);
-
-        response.push(
-          <div class="mt-4 space-y-3 font-sans">
-            <h3 class="font-semibold text-gray-900 dark:text-white text-sm">Aircraft Radar Settings</h3>
-
-            <div class="p-3 rounded-md bg-green-100/50 dark:bg-green-900/30 border border-green-300/50 dark:border-green-700/50 space-y-3">
-              <Input
-                type="range"
-                name="radar_range"
-                min={5}
-                max={100}
-                step={1}
-                value={radarRange()}
-                onChange={(v: number) => {
-                  setRadarRangeState(v);
-                  RadarEngine.setRange(v);
-                }}
-                notifyMode={"none"}
-                unit={"NM"}
-              />
-
-              <Input
-                type="range"
-                name="radar_sweep_speed"
-                min={2}
-                max={10}
-                step={1}
-                value={sweepSpeed()}
-                onChange={(v: number) => {
-                  setSweepSpeedState(v);
-                  RadarEngine.setSweepSpeed(v);
-                }}
-                notifyMode={"none"}
-                unit={"s"}
-              />
-
-              <Input
-                type="range"
-                name="radar_blimp_opacity"
-                min={0.2}
-                max={1.0}
-                step={0.05}
-                value={blimpOpacity()}
-                onChange={(v: number) => {
-                  setBlimpOpacityState(v);
-                  RadarEngine.setBlimpOpacity(v);
-                }}
-                notifyMode={"none"}
-                label="Blimp Target Opacity"
-                comment="Peak phosphor flash intensity or static transparency"
-                valueFormatter={(v) => `${Math.round(Number(v) * 100)}%`}
-              />
-
-              <Input
-                type="boolean"
-                name="radar_show_traffic"
-                label="Show Multiplayer Traffic"
-                comment="Display surrounding aircraft on cockpit radar screen"
-                value={showTraffic()}
-                onChange={(v: boolean) => {
-                  setShowTrafficState(v);
-                  RadarEngine.setShowTraffic(v);
-                  Notify.successNow(`Radar Traffic ${v ? "enabled" : "disabled"}`);
-                }}
-                notifyMode={"none"}
-              />
-
-              <Input
-                type="boolean"
-                name="radar_airborne_only"
-                label="Airborne Traffic Only"
-                comment="Filter out parked and ground taxiing aircraft to declutter radar"
-                value={airborneOnly()}
-                onChange={(v: boolean) => {
-                  setAirborneOnlyState(v);
-                  RadarEngine.setAirborneTrafficOnly(v);
-                  Notify.successNow(`Airborne Only Filter ${v ? "enabled" : "disabled"}`);
-                }}
-                notifyMode={"none"}
-              />
-
-              <Input
-                type="boolean"
-                name="radar_blimp_effect"
-                label="Sweep Phosphor Blimp Effect"
-                comment="Enable dynamic sweep decay effect. If disabled, blips remain clean and transparent"
-                value={blimpEffect()}
-                onChange={(v: boolean) => {
-                  setBlimpEffectState(v);
-                  RadarEngine.setBlimpEffect(v);
-                  Notify.successNow(`Blimp Phosphor Effect ${v ? "enabled" : "disabled"}`);
-                }}
-                notifyMode={"none"}
-              />
-
-              <Input
-                type="boolean"
-                name="radar_show_labels"
-                label="Show Traffic Callsigns"
-                comment="Display aircraft callsign tags next to multiplayer blips"
-                value={showLabels()}
-                onChange={(v: boolean) => {
-                  setShowLabelsState(v);
-                  RadarEngine.setShowLabels(v);
-                }}
-                notifyMode={"none"}
-              />
-
-              <Input
-                type="boolean"
-                name="radar_show_destination"
-                label="Show Destination on Radar"
-                comment="Display bearing vector line and arrival zone on cockpit radar"
-                value={showRadarDestination()}
-                onChange={(v: boolean) => {
-                  setShowRadarDestination(v);
-                  RadarEngine.setShowDestination(v);
-                  Notify.successNow(`Radar Destination ${v ? "enabled" : "disabled"}`);
-                }}
-                notifyMode={"none"}
-              />
-
-              <Input
-                type="boolean"
-                name="radar_show_airports"
-                label="Show Nearby Airports on Radar"
-                comment="Display surrounding GeoFS airfields and runways on radar"
-                value={showRadarAirports()}
-                onChange={(v: boolean) => {
-                  setShowRadarAirports(v);
-                  RadarEngine.setShowAirports(v);
-                  Notify.successNow(`Radar Airports ${v ? "enabled" : "disabled"}`);
-                }}
-                notifyMode={"none"}
-              />
-
-              <Input
-                type="boolean"
-                name="radar_show_terrain_map"
-                label="Show Land & Sea Coastline Map"
-                comment="Display tactical dark land, ocean and coastline terrain overlay on radar"
-                value={showRadarTerrainMap()}
-                onChange={(v: boolean) => {
-                  setShowRadarTerrainMap(v);
-                  RadarEngine.setShowTerrainMap(v);
-                  Notify.successNow(`Radar Terrain Map ${v ? "enabled" : "disabled"}`);
-                }}
-                notifyMode={"none"}
-              />
-            </div>
-          </div>
-        );
-      }
-
-      // Developer / Debug Mode
-      response.push(
-        <h3 class="font-semibold text-gray-900 dark:text-white text-sm mt-4">Developer Tools</h3>
-      );
-
-      response.push(
-        <div class="space-y-3 font-sans">
-          <Input
-            type="boolean"
-            name="dev_debug_mode"
-            label="Debug Diagnostic Mode"
-            comment="Enable detailed diagnostic logging in browser developer console"
-            value={debugModeEnabled()}
-            onChange={(v: boolean) => {
-              setDebugModeEnabled(v);
-              Logger.setDevMode(v);
-              Storage.write("experimental_debug_mode", v);
-              Notify.successNow(`Debug Mode ${v ? "enabled" : "disabled"}`);
-            }}
-            notifyMode="none"
-          />
-        </div>
-      );
-
-      resolve(response);
-    } catch (e) {
-      log.error("Failed to load settings tab UI:", e);
-      reject(e);
-    }
-  });
+        {/* Preset Browser Modal */}
+        <Show when={showPresetBrowser()}>
+          <PresetBrowserModal onClose={() => setShowPresetBrowser(false)} />
+        </Show>
+      </div>
+    ];
+  } catch (e) {
+    log.error("Failed to load settings tab UI:", e);
+    return [
+      <div class="p-4 text-xs text-rose-500 font-sans">
+        Failed to load Settings panel: {String(e)}
+      </div>
+    ];
+  }
 };
+

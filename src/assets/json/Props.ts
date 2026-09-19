@@ -3,7 +3,7 @@ export default [
     name: "Definition",
     options: {
       source: { target: "geofs.aircraft.instance", prop: "definition" },
-      reactive: true,
+      reactive: false,
       reset: true,
       allowed: [
         { name: "startupTime", type: "float" },
@@ -49,7 +49,7 @@ export default [
         target: "geofs.aircraft.instance",
         prop: "engines",
       },
-      reactive: true,
+      reactive: false,
       reset: true,
       allowed: [
         { name: "thrust", type: "int" },

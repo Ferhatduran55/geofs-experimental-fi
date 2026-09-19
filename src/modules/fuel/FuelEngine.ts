@@ -114,11 +114,11 @@ export class FuelEngine {
 
     svgContent += "</g>";
 
-    // Düz Açılı Başlık Yazıları
+    // Fixed angle gauge labels
     svgContent += '<text x="100" y="90" text-anchor="middle" fill="#ffffff" font-size="16" font-family="Arial" font-weight="bold">FUEL</text>';
     svgContent += '<text x="100" y="120" text-anchor="middle" fill="#ffffff" font-size="10" font-family="Arial">PERCENT</text>';
 
-    // Alt Kısımda Anlık Birim Tüketim Kadranı
+    // Instant unit fuel consumption dial at bottom
     const innerR = 20;
     const centerX = 100;
     const centerY = 160;

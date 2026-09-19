@@ -118,6 +118,7 @@ export class CustomScenarioEngine {
         const careerModule = (unsafeWindow as any).__efiCareerModule;
         if (careerModule) {
           careerModule.currentMission = mission;
+          careerModule.saveData();
         }
         await Storage.write("career_current_mission", mission);
         onSuccess?.();

@@ -2,7 +2,7 @@ import Logger from "../../shared/Logger";
 import Storage from "../../shared/Storage";
 import InstrumentManager from "../../shared/InstrumentManager";
 import type { TransportMission } from "../career/TransportEngine";
-import { getGeoFSRunways, calculateDistanceNm, calculateBearingDeg } from "../career/AirportDatabase";
+import { getNearGeoFSRunways, calculateDistanceNm, calculateBearingDeg, type AirportInfo } from "../career/AirportDatabase";
 
 const log = Logger.create("RadarEngine");
 
@@ -78,6 +78,9 @@ export class RadarEngine {
   // Persistent Zero-Flicker DOM Caches
   private static blipDOMMap = new Map<string, BlipDOMEntry>();
   private static airportDOMMap = new Map<string, HTMLElement>();
+  private static nearbyAirportsCache: AirportInfo[] = [];
+  private static lastAirportScanLla: [number, number] | null = null;
+  private static lastAirportScanTime: number = 0;
 
   static sweepAngle: number = 0;
   static lastSweepTime: number = 0;
@@ -316,10 +319,9 @@ export class RadarEngine {
 
       .efi-radar-airport-blip {
         position: absolute;
+        width: 6px;
+        height: 6px;
         transform: translate(-50%, -50%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
         pointer-events: none;
       }
       .efi-radar-airport-icon {
@@ -331,13 +333,16 @@ export class RadarEngine {
         box-shadow: 0 0 4px #38bdf8;
       }
       .efi-radar-airport-label {
-        margin-top: 1px;
+        position: absolute;
+        top: 7px;
+        left: 50%;
+        transform: translateX(-50%);
         color: #38bdf8;
         font-size: 7.5px;
         font-family: monospace;
         font-weight: bold;
         white-space: nowrap;
-        text-shadow: 0 0 3px #000000;
+        text-shadow: 0 0 3px #000000, 0 0 5px #000000;
       }
 
       .efi-radar-dest-tag {
@@ -549,6 +554,9 @@ export class RadarEngine {
 
     for (const [, el] of this.airportDOMMap) el.remove();
     this.airportDOMMap.clear();
+    this.nearbyAirportsCache = [];
+    this.lastAirportScanLla = null;
+    this.lastAirportScanTime = 0;
 
     const svgLayer = document.querySelector(".efi-radar-svg-layer");
     if (svgLayer) svgLayer.innerHTML = "";
@@ -623,6 +631,7 @@ export class RadarEngine {
       <div class="efi-radar-center"></div>
       <div class="efi-radar-heading-indicator"></div>
     `;
+    log.info("Radar indicator successfully attached to GeoFS cockpit!");
   }
 
   /**
@@ -899,12 +908,19 @@ export class RadarEngine {
   }
 
   /**
-   * Update and cache nearby GeoFS airports on radar layer
+   * Ultra-optimized Nearby GeoFS Airports Radar Renderer:
+   * Uses spatial 1x1 grid cell queries with a decoupled 3-second / 0.5 NM cache.
+   * Eliminates the severe FPS drop caused by scanning the entire global runway database.
    */
   static updateAirports(): void {
     const layer = document.querySelector(".efi-radar-airports-layer");
     if (!layer || !this.settings.showAirports) {
-      if (layer && !this.settings.showAirports) layer.innerHTML = "";
+      if (layer && !this.settings.showAirports && this.airportDOMMap.size > 0) {
+        layer.innerHTML = "";
+        this.airportDOMMap.clear();
+        this.nearbyAirportsCache = [];
+        this.lastAirportScanLla = null;
+      }
       return;
     }
 
@@ -912,13 +928,35 @@ export class RadarEngine {
     const ownLla = geofs?.aircraft?.instance?.llaLocation;
     if (!ownLla) return;
 
+    const now = Date.now();
+    let shouldRescan = false;
+
+    if (!this.lastAirportScanLla || now - this.lastAirportScanTime > 3000) {
+      shouldRescan = true;
+    } else {
+      const distFromLastScanNm = calculateDistanceNm(
+        ownLla[0],
+        ownLla[1],
+        this.lastAirportScanLla[0],
+        this.lastAirportScanLla[1]
+      );
+      if (distFromLastScanNm > 0.5) {
+        shouldRescan = true;
+      }
+    }
+
+    if (shouldRescan) {
+      this.nearbyAirportsCache = getNearGeoFSRunways(ownLla[0], ownLla[1], this.settings.range);
+      this.lastAirportScanLla = [ownLla[0], ownLla[1]];
+      this.lastAirportScanTime = now;
+    }
+
     const heading = geofs?.animation?.values?.heading || 0;
     const rangeMeters = this.settings.range * NM_TO_METERS;
     const radius = 85;
-    const allRunways = getGeoFSRunways();
     const activeIcaos = new Set<string>();
 
-    for (const rw of allRunways) {
+    for (const rw of this.nearbyAirportsCache) {
       const distMeters = this.calculateDistance(ownLla[0], ownLla[1], rw.lat, rw.lon);
       if (distMeters > rangeMeters || distMeters < 80) continue;
 

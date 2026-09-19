@@ -570,6 +570,9 @@ export default (props: InputProps) => {
           step={props.step ?? 1}
           value={currentVal()}
           class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+          onKeyDown={(e: KeyboardEvent) => e.stopPropagation()}
+          onKeyUp={(e: KeyboardEvent) => e.stopPropagation()}
+          onKeyPress={(e: KeyboardEvent) => e.stopPropagation()}
           onInput={(e: InputEvent) => {
             const value = Number((e.currentTarget as HTMLInputElement).value);
             if (props.onChange) props.onChange(value);
@@ -622,7 +625,12 @@ export default (props: InputProps) => {
           {...inputAttributes}
           ref={reference}
           onInput={(e: InputEvent) => apply(e)}
-          onKeyDown={(e: KeyboardEvent) => apply(e)}
+          onKeyDown={(e: KeyboardEvent) => {
+            e.stopPropagation();
+            apply(e);
+          }}
+          onKeyUp={(e: KeyboardEvent) => e.stopPropagation()}
+          onKeyPress={(e: KeyboardEvent) => e.stopPropagation()}
           onBlur={() => {
             if (prototypeOfValue() === "number" && reference) {
               const rawText = reference.value.trim();

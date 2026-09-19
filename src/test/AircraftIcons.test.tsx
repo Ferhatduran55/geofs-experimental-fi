@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 import { promises as fs } from "fs";
 import path from "path";
 import icons from "../assets/icons/aircraft";
-import type Marker from "../classes/Marker";
+import type Marker from "../shared/Marker";
 
 function extractPathFromMarker(marker: Marker): string {
   try {

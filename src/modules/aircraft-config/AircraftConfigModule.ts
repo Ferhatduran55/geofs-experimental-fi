@@ -2,12 +2,8 @@ import Logger from "../../shared/Logger";
 import Props from "../../shared/Props";
 import Aircraft from "../../shared/Aircraft";
 import propsData from "../../assets/json/Props";
-import DescriptionIcon from "../../assets/icons/Description";
-import EngineIcon from "../../assets/icons/Engine";
-import renderDefinitionsTab, { resetDefinitions } from "./views/DefinitionsTab";
-import renderEnginesTab, { resetEngines } from "./views/EnginesTab";
 import AircraftSetupStore from "./AircraftSetupStore";
-import type { ICoreEngine, IModule, TabDefinition } from "../../core/types";
+import type { ICoreEngine, IModule } from "../../core/types";
 
 const log = Logger.create("AircraftConfigModule");
 
@@ -40,10 +36,6 @@ export class AircraftConfigModule implements IModule {
 
     AircraftSetupStore.captureDefaults();
 
-    // Register Definitions Tab & Engines Tab
-    this.core.ui.registerTab(this.getDefinitionsTab());
-    this.core.ui.registerTab(this.getEnginesTab());
-
     this.unbindListeners.push(
       this.core.eventBus.on("aircraft:changed", async () => {
         if (!this._isEnabled) return;
@@ -67,43 +59,12 @@ export class AircraftConfigModule implements IModule {
     if (!this._isEnabled || !this.core) return;
     this._isEnabled = false;
 
-    this.core.ui.unregisterTab("definitions");
-    this.core.ui.unregisterTab("engines");
-
     for (const unbind of this.unbindListeners) {
       unbind();
     }
     this.unbindListeners = [];
 
     log.info("AircraftConfigModule disabled");
-  }
-
-  private getDefinitionsTab(): TabDefinition {
-    return {
-      id: "definitions",
-      title: "Definitions",
-      icon: DescriptionIcon,
-      order: 10,
-      className: "bg-gray-300/50 dark:bg-gray-900/70",
-      render: async () => {
-        return (await renderDefinitionsTab()) as any;
-      },
-      onReset: resetDefinitions,
-    };
-  }
-
-  private getEnginesTab(): TabDefinition {
-    return {
-      id: "engines",
-      title: "Engines",
-      icon: EngineIcon,
-      order: 20,
-      className: "bg-gray-300/50 dark:bg-gray-900/70",
-      render: async () => {
-        return (await renderEnginesTab()) as any;
-      },
-      onReset: resetEngines,
-    };
   }
 }
 

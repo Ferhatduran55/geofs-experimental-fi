@@ -68,6 +68,9 @@ export class InstrumentManager {
       instruments.show = function (...args: any[]) {
         const res = origShow.apply(this, args);
         InstrumentManager.setGlobalVisibility(true);
+        setTimeout(() => {
+          InstrumentManager.recalculateAllInstrumentPositions();
+        }, 50);
         return res;
       };
     }
@@ -79,6 +82,11 @@ export class InstrumentManager {
         const res = origToggle.apply(this, args);
         const isVisible = instruments.visible !== false && instruments.isVisible !== false;
         InstrumentManager.setGlobalVisibility(isVisible);
+        if (isVisible) {
+          setTimeout(() => {
+            InstrumentManager.recalculateAllInstrumentPositions();
+          }, 50);
+        }
         return res;
       };
     }
@@ -122,16 +130,31 @@ export class InstrumentManager {
 
     // 9. Hook camera changes to dynamically re-pack gauges when cockpit view switches
     window.addEventListener("cameraChange", () => {
-      this.recalculateAllInstrumentPositions();
+      setTimeout(() => {
+        this.recalculateAllInstrumentPositions();
+      }, 50);
     });
     const geofsJQuery = (unsafeWindow as any).jQuery || (unsafeWindow as any).$;
     if (geofsJQuery) {
       try {
         geofsJQuery(document).on("cameraChange", () => {
-          this.recalculateAllInstrumentPositions();
+          setTimeout(() => {
+            this.recalculateAllInstrumentPositions();
+          }, 50);
         });
       } catch {}
     }
+
+    // 10. Hook GeoFS shortcut key 'I' / 'i' for instrument visibility toggle
+    window.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "i" || e.key === "I") {
+        const target = e.target as HTMLElement;
+        if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+        setTimeout(() => {
+          this.recalculateAllInstrumentPositions();
+        }, 100);
+      }
+    });
   }
 
   static setGlobalVisibility(visible: boolean): void {
@@ -149,6 +172,19 @@ export class InstrumentManager {
           }
         }
       }
+    }
+
+    if (visible) {
+      this.recalculateAllInstrumentPositions();
+      requestAnimationFrame(() => {
+        this.recalculateAllInstrumentPositions();
+      });
+      setTimeout(() => {
+        this.recalculateAllInstrumentPositions();
+      }, 50);
+      setTimeout(() => {
+        this.recalculateAllInstrumentPositions();
+      }, 250);
     }
   }
 

@@ -51,11 +51,14 @@ const Article = (props: any) => {
               <span>Error: {props.resource.error}</span>
             </Match>
             <Match when={props.resource()}>
-              <For each={props.resource()}>
-                {(i) => {
-                  return i;
-                }}
-              </For>
+              <Show
+                when={Array.isArray(props.resource())}
+                fallback={props.resource()}
+              >
+                <For each={props.resource() as any[]}>
+                  {(i) => i}
+                </For>
+              </Show>
             </Match>
           </Switch>
         </Suspense>

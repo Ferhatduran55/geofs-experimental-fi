@@ -5,3 +5,4 @@ export * from "./Props";
 export * from "./Reactive";
 export * from "./Aircraft";
 export * from "./InstrumentManager";
+export * from "./Marker";

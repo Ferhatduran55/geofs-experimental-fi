@@ -91,6 +91,23 @@ export default async (module: CareerModule) => {
   const [showCustomModal, setShowCustomModal] = createSignal(false);
   const [showLogbookModal, setShowLogbookModal] = createSignal(false);
   const [showTrendsModal, setShowTrendsModal] = createSignal(false);
+  const [hideCrashed, setHideCrashed] = createSignal<boolean>(false);
+  const toggleHideCrashed = () => {
+    const next = !hideCrashed();
+    setHideCrashed(next);
+    Storage.set("career_logbook_hide_crashes", next);
+  };
+
+  const getFilteredFlights = (acId: string) => {
+    const list = module.logbook[acId] || [];
+    if (!hideCrashed()) return list;
+    return list.filter((f) => f.status !== "crashed" && f.arrivalIcao !== "CRASHED");
+  };
+
+  const getVisibleAircraftIds = () => {
+    return Object.keys(module.logbook).filter((acId) => getFilteredFlights(acId).length > 0);
+  };
+
   const [activeMission, setActiveMission] = createSignal<TransportMission | null>(module.currentMission);
   const [balance, setBalance] = createSignal(module.balance);
 
@@ -102,7 +119,10 @@ export default async (module: CareerModule) => {
 
   // Tick loop for live distance & navigation update
   let navTimer: number | null = null;
-  onMount(() => {
+  onMount(async () => {
+    const savedHide = await Storage.get<boolean>("career_logbook_hide_crashes", false);
+    setHideCrashed(savedHide === true);
+
     navTimer = window.setInterval(() => {
       // Keep activeMission and balance strictly in sync with CareerModule
       if (activeMission() !== module.currentMission) {
@@ -188,114 +208,113 @@ export default async (module: CareerModule) => {
   const todaysTrend = () => MarketEngine.getTodaysTrend();
 
   return [
-    <div class="p-4 space-y-4 font-sans text-gray-100">
-      {/* Career Overview Banner */}
-      <div class="bg-gray-800/90 dark:bg-black/70 border border-gray-700/60 p-4 rounded-xl space-y-3 shadow-lg">
-        <div class="flex items-center justify-between">
-          <h3 class="text-base font-bold text-white tracking-wide flex items-center">
-            <span class="mr-2">✈️</span> Flight Career
-          </h3>
-          <span class="text-xs font-mono px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 border border-blue-700/50">
-            Certified Aviator
-          </span>
-        </div>
-
-        <div class="grid grid-cols-3 gap-2.5">
-          <div class="bg-gray-900/80 p-3 rounded-lg text-center border border-gray-800">
-            <p class="text-[11px] text-gray-400">Account Balance</p>
-            <p class="font-display text-lg font-bold text-green-400 mt-0.5">
-              ${balance().toLocaleString()}
-            </p>
-          </div>
-          <div class="bg-gray-900/80 p-3 rounded-lg text-center border border-gray-800">
-            <p class="text-[11px] text-gray-400">Total Flights</p>
-            <p class="font-display text-lg font-bold text-white mt-0.5">{totalFlights()}</p>
-          </div>
-          <div class="bg-gray-900/80 p-3 rounded-lg text-center border border-gray-800">
-            <p class="text-[11px] text-gray-400">Active Fleet</p>
-            <p class="font-display text-lg font-bold text-blue-400 mt-0.5">{fleetSize()} AC</p>
-          </div>
-        </div>
-
-        {/* Rich Active Contract & Navigation Briefing Card */}
-        <Show when={activeMission()}>
-          {(msn) => (
-            <div class="p-4 bg-gradient-to-br from-gray-900 via-blue-950/60 to-gray-950 border border-blue-500/50 rounded-2xl space-y-3 shadow-xl">
-              <div class="flex justify-between items-center text-xs text-blue-300">
-                <span class="font-bold uppercase tracking-wider flex items-center">
-                  <span class={`w-2.5 h-2.5 rounded-full ${isWithin1Nm() ? "bg-emerald-400 animate-ping" : "bg-green-400 animate-pulse"} mr-2`} />
-                  {isWithin1Nm() ? "🎯 Final Landing Approach (<1 NM)" : `Active Flight: ${msn().aircraftModel}`}
-                </span>
-                <span class="font-mono bg-blue-900/80 px-2.5 py-0.5 rounded text-blue-200 text-xs font-semibold">
-                  Fixed: {msn().fixedDistanceNm} NM
-                </span>
-              </div>
-
-              {/* Route Summary */}
-              <div class="flex items-start justify-between border-b border-gray-800 pb-2.5 gap-2">
-                <div class="space-y-0.5 flex-1">
-                  <div class="text-[10px] text-gray-400 uppercase font-semibold">Origin Airport</div>
-                  <div class="font-bold text-sm text-white">{formatAirportDisplay(msn().originAirport).mainTitle}</div>
-                  <div class="text-xs text-gray-400">{formatAirportDisplay(msn().originAirport).subDetail}</div>
-                </div>
-
-                <div class="text-right space-y-0.5 flex-1">
-                  <div class="text-[10px] text-emerald-400 uppercase font-semibold">Destination Airport</div>
-                  <div class="font-bold text-sm text-emerald-300">{formatAirportDisplay(msn().destinationAirport).mainTitle}</div>
-                  <div class="text-xs text-gray-400">{formatAirportDisplay(msn().destinationAirport).subDetail}</div>
-                </div>
-              </div>
-
-              {/* Live Enroute Telemetry & Landing Runway */}
-              <div class="grid grid-cols-3 gap-2 bg-gray-950/90 rounded-xl p-3 text-center border border-gray-800">
-                <div>
-                  <div class="text-[10px] text-gray-400">Remaining Dist</div>
-                  <div class="font-mono text-sm font-bold text-cyan-300 mt-0.5">
-                    {remainingDistNm()} <span class="text-[10px] font-normal text-gray-400">NM</span>
-                  </div>
-                </div>
-                <div>
-                  <div class="text-[10px] text-gray-400">Target Bearing</div>
-                  <div class="font-mono text-sm font-bold text-amber-400 mt-0.5">
-                    🧭 {liveBearing() || msn().initialBearingFormatted}
-                  </div>
-                </div>
-                <div>
-                  <div class="text-[10px] text-gray-400">Est. Time (ETE)</div>
-                  <div class="font-mono text-sm font-bold text-white mt-0.5">
-                    ~{estRemainingMins()} <span class="text-[10px] font-normal text-gray-400">min</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Landing Runway & Payout Details */}
-              <div class="flex items-center justify-between text-xs pt-1">
-                <div class="text-gray-300">
-                  <span>🛬 Assigned Runway: </span>
-                  <b class="text-emerald-400">{msn().destinationAirport.runwayHeading || "Active Runway"}</b>
-                </div>
-                <div class="font-bold text-green-400 text-sm font-mono">
-                  +${msn().grossRevenue.toLocaleString()}
-                </div>
-              </div>
-
-              <div class="flex justify-between items-center text-xs pt-2 border-t border-gray-800">
-                <span class="text-gray-400">📦 {TransportEngine.getPayloadDescription(msn().payload)}</span>
-                <button
-                  type="button"
-                  class="text-xs text-red-400 hover:text-red-300 hover:underline font-semibold"
-                  onClick={handleAbortContract}
-                >
-                  Abort Contract
-                </button>
-              </div>
-            </div>
-          )}
-        </Show>
+    <div class="p-2 space-y-3.5 font-sans text-gray-100">
+      {/* Career Header */}
+      <div class="flex items-center justify-between px-1">
+        <h3 class="text-base font-bold text-white tracking-wide flex items-center">
+          <span class="mr-2">✈️</span> Flight Career
+        </h3>
+        <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-blue-900/60 text-blue-300 border border-blue-700/50 font-bold">
+          Certified Aviator
+        </span>
       </div>
 
+      {/* Overview Stats Grid */}
+      <div class="grid grid-cols-3 gap-2">
+        <div class="bg-gray-900/80 p-3 rounded-xl text-center border border-gray-800 shadow-md">
+          <p class="text-[11px] text-gray-400">Account Balance</p>
+          <p class="font-display text-lg font-bold text-emerald-400 mt-0.5">
+            ${balance().toLocaleString()}
+          </p>
+        </div>
+        <div class="bg-gray-900/80 p-3 rounded-xl text-center border border-gray-800 shadow-md">
+          <p class="text-[11px] text-gray-400">Total Flights</p>
+          <p class="font-display text-lg font-bold text-white mt-0.5">{totalFlights()}</p>
+        </div>
+        <div class="bg-gray-900/80 p-3 rounded-xl text-center border border-gray-800 shadow-md">
+          <p class="text-[11px] text-gray-400">Active Fleet</p>
+          <p class="font-display text-lg font-bold text-sky-400 mt-0.5">{fleetSize()} AC</p>
+        </div>
+      </div>
+
+      {/* Rich Active Contract & Navigation Briefing Card */}
+      <Show when={activeMission()}>
+        {(msn) => (
+          <div class="p-4 bg-gradient-to-br from-gray-900 via-blue-950/60 to-gray-950 border border-blue-500/50 rounded-2xl space-y-3 shadow-xl">
+            <div class="flex justify-between items-center text-xs text-blue-300">
+              <span class="font-bold uppercase tracking-wider flex items-center">
+                <span class={`w-2.5 h-2.5 rounded-full ${isWithin1Nm() ? "bg-emerald-400 animate-ping" : "bg-green-400 animate-pulse"} mr-2`} />
+                {isWithin1Nm() ? "🎯 Final Landing Approach (<1 NM)" : `Active Flight: ${msn().aircraftModel}`}
+              </span>
+              <span class="font-mono bg-blue-900/80 px-2.5 py-0.5 rounded text-blue-200 text-xs font-semibold">
+                Fixed: {msn().fixedDistanceNm} NM
+              </span>
+            </div>
+
+            {/* Route Summary */}
+            <div class="flex items-start justify-between border-b border-gray-800 pb-2.5 gap-2">
+              <div class="space-y-0.5 flex-1">
+                <div class="text-[10px] text-gray-400 uppercase font-semibold">Origin Airport</div>
+                <div class="font-bold text-sm text-white">{formatAirportDisplay(msn().originAirport).mainTitle}</div>
+                <div class="text-xs text-gray-400">{formatAirportDisplay(msn().originAirport).subDetail}</div>
+              </div>
+
+              <div class="text-right space-y-0.5 flex-1">
+                <div class="text-[10px] text-emerald-400 uppercase font-semibold">Destination Airport</div>
+                <div class="font-bold text-sm text-emerald-300">{formatAirportDisplay(msn().destinationAirport).mainTitle}</div>
+                <div class="text-xs text-gray-400">{formatAirportDisplay(msn().destinationAirport).subDetail}</div>
+              </div>
+            </div>
+
+            {/* Live Enroute Telemetry & Landing Runway */}
+            <div class="grid grid-cols-3 gap-2 bg-gray-950/90 rounded-xl p-3 text-center border border-gray-800">
+              <div>
+                <div class="text-[10px] text-gray-400">Remaining Dist</div>
+                <div class="font-mono text-sm font-bold text-cyan-300 mt-0.5">
+                  {remainingDistNm()} <span class="text-[10px] font-normal text-gray-400">NM</span>
+                </div>
+              </div>
+              <div>
+                <div class="text-[10px] text-gray-400">Target Bearing</div>
+                <div class="font-mono text-sm font-bold text-amber-400 mt-0.5">
+                  🧭 {liveBearing() || msn().initialBearingFormatted}
+                </div>
+              </div>
+              <div>
+                <div class="text-[10px] text-gray-400">Est. Time (ETE)</div>
+                <div class="font-mono text-sm font-bold text-white mt-0.5">
+                  ~{estRemainingMins()} <span class="text-[10px] font-normal text-gray-400">min</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Landing Runway & Payout Details */}
+            <div class="flex items-center justify-between text-xs pt-1">
+              <div class="text-gray-300">
+                <span>🛬 Assigned Runway: </span>
+                <b class="text-emerald-400">{msn().destinationAirport.runwayHeading || "Active Runway"}</b>
+              </div>
+              <div class="font-bold text-green-400 text-sm font-mono">
+                +${msn().grossRevenue.toLocaleString()}
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center text-xs pt-2 border-t border-gray-800">
+              <span class="text-gray-400">📦 {TransportEngine.getPayloadDescription(msn().payload)}</span>
+              <button
+                type="button"
+                class="text-xs text-red-400 hover:text-red-300 hover:underline font-semibold"
+                onClick={handleAbortContract}
+              >
+                Abort Contract
+              </button>
+            </div>
+          </div>
+        )}
+      </Show>
+
       {/* Main Buttons */}
-      <div class="space-y-2.5">
+      <div class="space-y-2.5 pt-1">
         <button
           type="button"
           class="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center space-x-2"
@@ -372,72 +391,120 @@ export default async (module: CareerModule) => {
                     <p class="text-xs text-gray-400">Chronological history of flights, settlements and performance ratings</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  class="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors"
-                  onClick={closeLogbook}
-                >
-                  ✕
-                </button>
+                <div class="flex items-center space-x-3">
+                  <button
+                    type="button"
+                    onClick={toggleHideCrashed}
+                    class={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 shadow-sm ${
+                      hideCrashed()
+                        ? "bg-red-950/80 border-red-700 text-red-300 hover:bg-red-900"
+                        : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-750 hover:text-white"
+                    }`}
+                    title={hideCrashed() ? "Crashed flights hidden. Click to show." : "Crashed flights visible. Click to hide."}
+                  >
+                    <span>💥</span>
+                    <span>{hideCrashed() ? "Crashes: Hidden" : "Crashes: Shown"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors"
+                    onClick={closeLogbook}
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               <div class="flex-1 overflow-y-auto p-6 space-y-4">
                 <Show
-                  when={Object.keys(module.logbook).length > 0}
+                  when={getVisibleAircraftIds().length > 0}
                   fallback={
                     <div class="text-center py-20 text-gray-500 space-y-2">
-                      <div class="text-4xl">📖</div>
-                      <p class="text-sm font-medium">No flight records logged yet. Fly contracts to build your career history!</p>
+                      <div class="text-4xl">{hideCrashed() ? "🛡️" : "📖"}</div>
+                      <p class="text-sm font-medium">
+                        {hideCrashed()
+                          ? "No non-crashed flights recorded yet, or all records are crashes (hidden)."
+                          : "No flight records logged yet. Fly contracts to build your career history!"}
+                      </p>
                     </div>
                   }
                 >
-                  <For each={Object.keys(module.logbook)}>
-                    {(acId) => (
-                      <div class="space-y-3">
-                        <div class="flex items-center justify-between border-b border-gray-800 pb-2">
-                          <h4 class="font-bold text-sm text-blue-400 uppercase tracking-wider">
-                            ✈️ {module.logbook[acId][0]?.aircraftName || `Aircraft ${acId}`}
-                          </h4>
-                          <span class="text-xs text-gray-500 font-mono">
-                            {module.logbook[acId].length} Flights Logged
-                          </span>
-                        </div>
+                  <For each={getVisibleAircraftIds()}>
+                    {(acId) => {
+                      const flights = () => getFilteredFlights(acId);
+                      return (
+                        <div class="space-y-3">
+                          <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+                            <h4 class="font-bold text-sm text-blue-400 uppercase tracking-wider">
+                              ✈️ {flights()[0]?.aircraftName || `Aircraft ${acId}`}
+                            </h4>
+                            <span class="text-xs text-gray-500 font-mono">
+                              {flights().length} Flights Logged
+                            </span>
+                          </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <For each={module.logbook[acId]}>
-                            {(f) => (
-                              <div class="p-4 bg-gray-800/70 hover:bg-gray-800 rounded-2xl border border-gray-700/70 text-xs space-y-2 transition-all">
-                                <div class="flex justify-between items-center font-bold">
-                                  <span class="text-white text-base">
-                                    {f.departureIcao} <span class="text-gray-500">➔</span> {f.arrivalIcao}
-                                  </span>
-                                  <span class="font-mono bg-blue-900/60 text-blue-300 px-2.5 py-0.5 rounded text-xs">
-                                    {f.flownDistanceNm} NM
-                                  </span>
-                                </div>
-                                <div class="text-gray-300 flex justify-between">
-                                  <span>📦 {f.payloadDescription}</span>
-                                  <span>⏱️ {f.flightDurationHours}h</span>
-                                </div>
-                                <div class="flex justify-between items-center pt-2 border-t border-gray-700/50 text-xs">
-                                  <span class="text-gray-500 font-mono">
-                                    {new Date(f.landingTime).toLocaleDateString()} • {f.callsign}
-                                  </span>
-                                  <Show
-                                    when={f.financials}
-                                    fallback={<span class="text-gray-400">Free Flight</span>}
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <For each={flights()}>
+                              {(f) => {
+                                const isCrashed = f.status === "crashed" || f.arrivalIcao === "CRASHED";
+                                return (
+                                  <div
+                                    class={`p-4 rounded-2xl border text-xs space-y-2 transition-all ${
+                                      isCrashed
+                                        ? "bg-red-950/30 border-red-800/60 hover:bg-red-950/50"
+                                        : "bg-gray-800/70 hover:bg-gray-800 border-gray-700/70"
+                                    }`}
                                   >
-                                    <span class="font-bold text-green-400">
-                                      Rating {f.financials!.rating} (+${f.financials!.netIncome.toLocaleString()})
-                                    </span>
-                                  </Show>
-                                </div>
-                              </div>
-                            )}
-                          </For>
+                                    <div class="flex justify-between items-center font-bold">
+                                      <span class="text-white text-base flex items-center space-x-1.5">
+                                        <span>{f.departureIcao}</span>
+                                        <span class="text-gray-500">➔</span>
+                                        <span class={isCrashed ? "text-red-400 font-extrabold" : ""}>
+                                          {f.arrivalIcao}
+                                        </span>
+                                      </span>
+                                      <Show
+                                        when={isCrashed}
+                                        fallback={
+                                          <span class="font-mono bg-blue-900/60 text-blue-300 px-2.5 py-0.5 rounded text-xs">
+                                            {f.flownDistanceNm} NM
+                                          </span>
+                                        }
+                                      >
+                                        <span class="font-mono bg-red-900/80 text-red-200 border border-red-700/50 px-2.5 py-0.5 rounded text-xs font-bold">
+                                          💥 CRASHED
+                                        </span>
+                                      </Show>
+                                    </div>
+                                    <div class="text-gray-300 flex justify-between">
+                                      <span>📦 {f.payloadDescription}</span>
+                                      <span>⏱️ {f.flightDurationHours}h</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-2 border-t border-gray-700/50 text-xs">
+                                      <span class="text-gray-500 font-mono">
+                                        {new Date(f.landingTime).toLocaleDateString()} • {f.callsign}
+                                      </span>
+                                      <Show
+                                        when={f.financials}
+                                        fallback={
+                                          <span class={isCrashed ? "text-red-400 font-semibold" : "text-gray-400"}>
+                                            {isCrashed ? "Mission Terminated" : "Free Flight"}
+                                          </span>
+                                        }
+                                      >
+                                        <span class="font-bold text-green-400">
+                                          Rating {f.financials!.rating} (+${f.financials!.netIncome.toLocaleString()})
+                                        </span>
+                                      </Show>
+                                    </div>
+                                  </div>
+                                );
+                              }}
+                            </For>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    }}
                   </For>
                 </Show>
               </div>

@@ -32,17 +32,24 @@ export class SafeFlightLauncher {
 
       log.info(`Launching flight: targetAcId=${targetAcId}, currentId=${currentId}, airport=${options.originAirport.icao}`);
 
+      // Ensure GeoFS / Cesium frame loop is unpaused so 3D glTF textures and meshes compile cleanly
+      if (typeof geofs.pause === "function") {
+        geofs.pause(false);
+      }
+
       // 1. Change Aircraft if necessary and wait for 3D model & Cesium entity to be ready
       if (!isNaN(targetAcId) && targetAcId > 0 && currentId !== targetAcId) {
         Notify.infoNow("Loading aircraft model...");
-        if (typeof geofs.aircraft?.loadAircraft === "function") {
+        if (typeof geofs.setAircraft === "function") {
+          geofs.setAircraft(targetAcId);
+        } else if (typeof geofs.aircraft?.loadAircraft === "function") {
           geofs.aircraft.loadAircraft(targetAcId);
         } else if (typeof currentInst?.change === "function") {
           currentInst.change(targetAcId);
         }
 
         // Wait until new aircraft instance is ready
-        await this.waitForAircraftReady(targetAcId, 12000);
+        await this.waitForAircraftReady(targetAcId, 15000);
       }
 
       // 2. Refuel Aircraft
@@ -69,12 +76,14 @@ export class SafeFlightLauncher {
       }
 
       // Give a brief tick for physics engine before placing
-      await new Promise((r) => setTimeout(r, 150));
+      await new Promise((r) => setTimeout(r, 200));
 
       const newInst = geofs.aircraft?.instance;
       if (newInst) {
+        // Pass orientation as Euler vector [heading, 0, 0] to avoid NaN pitch/roll matrix issues
+        const orientationVec: [number, number, number] = [heading, 0, 0];
         if (typeof newInst.place === "function") {
-          newInst.place(placeCoord, heading);
+          newInst.place(placeCoord, orientationVec);
         } else if (typeof geofs.flyTo === "function") {
           geofs.flyTo([placeCoord[0], placeCoord[1], placeCoord[2], heading]);
         }
@@ -85,12 +94,25 @@ export class SafeFlightLauncher {
             if (typeof geofs.camera.setTarget === "function") {
               geofs.camera.setTarget(newInst);
             }
+            if (typeof geofs.camera.setCurrentView === "function") {
+              geofs.camera.setCurrentView(0);
+            }
             if (typeof geofs.camera.reset === "function") {
               geofs.camera.reset();
+            }
+            if (typeof geofs.camera.update === "function") {
+              geofs.camera.update(0);
             }
           } catch (camErr) {
             log.warn("Camera reset warning:", camErr);
           }
+        }
+
+        // Request Cesium scene render to prevent black screen
+        if (geofs.api?.viewer?.scene?.requestRender) {
+          try {
+            geofs.api.viewer.scene.requestRender();
+          } catch (_) {}
         }
 
         // Engage parking brakes and zero throttle
@@ -137,8 +159,21 @@ export class SafeFlightLauncher {
         const geofs = (unsafeWindow as any).geofs;
         const inst = geofs?.aircraft?.instance;
 
+        // Keep Cesium scene rendering while waiting for glTF models to upload
+        if (geofs?.api?.viewer?.scene?.requestRender) {
+          try {
+            geofs.api.viewer.scene.requestRender();
+          } catch (_) {}
+        }
+
         // Check if new aircraft instance is instantiated and initialized
-        if (inst && Number(inst.id) === targetId && inst.rigidBody && inst.llaLocation) {
+        if (
+          inst &&
+          Number(inst.id) === targetId &&
+          inst.rigidBody &&
+          inst.llaLocation &&
+          (inst.object3d || inst.models)
+        ) {
           clearInterval(checkInterval);
           resolve();
           return;

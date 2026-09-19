@@ -55,6 +55,9 @@ export default (props: ScenariosModalProps) => {
     setMissionPool(pool);
   };
 
+  // Immediate synchronous pool load on component creation to ensure reactive signals are ready
+  loadCurrentPool();
+
   const handleManualRefresh = () => {
     setIsRefreshing(true);
     loadCurrentPool(Date.now());
@@ -139,6 +142,7 @@ export default (props: ScenariosModalProps) => {
         const careerModule = (unsafeWindow as any).__efiCareerModule;
         if (careerModule) {
           careerModule.currentMission = acceptedMission;
+          careerModule.saveData();
         }
 
         await Storage.write("career_current_mission", acceptedMission);
@@ -282,6 +286,9 @@ export default (props: ScenariosModalProps) => {
                 placeholder="Search ICAO, airport, aircraft..."
                 value={searchTerm()}
                 onInput={(e) => setSearchTerm(e.currentTarget.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+                onKeyUp={(e) => e.stopPropagation()}
+                onKeyPress={(e) => e.stopPropagation()}
                 class="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-900/90 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
               />
               <span class="absolute left-2.5 top-2 text-gray-500 text-xs">🔍</span>
@@ -290,6 +297,8 @@ export default (props: ScenariosModalProps) => {
             <select
               value={sortBy()}
               onChange={(e) => setSortBy(e.currentTarget.value as any)}
+              onKeyDown={(e) => e.stopPropagation()}
+              onKeyUp={(e) => e.stopPropagation()}
               class="px-3 py-1.5 text-xs bg-gray-900/90 border border-gray-700 rounded-lg text-gray-200 focus:outline-none focus:border-emerald-500 font-medium"
             >
               <option value="revenue_desc">Highest Payout ($)</option>
@@ -300,7 +309,7 @@ export default (props: ScenariosModalProps) => {
         </div>
 
         {/* Contract Offerings Cards Grid */}
-        <div class="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 custom-scrollbar items-start">
           <For each={filteredMissions()}>
             {(mission) => {
               const orig = formatAirportDisplay(mission.originAirport);
@@ -308,7 +317,7 @@ export default (props: ScenariosModalProps) => {
               const isPax = mission.payload.type === "passenger";
 
               return (
-                <div class="flex flex-col justify-between bg-gray-800/80 hover:bg-gray-800 border border-gray-700/70 hover:border-emerald-500/60 rounded-xl p-4 transition-all duration-200 shadow-lg hover:shadow-xl hover:shadow-black/50 group">
+                <div class="flex flex-col justify-between bg-gray-800/80 hover:bg-gray-800 border border-gray-700/70 hover:border-emerald-500/60 rounded-xl p-4 transition-all duration-200 shadow-lg hover:shadow-xl hover:shadow-black/50 group min-w-0 min-h-[420px]">
                   <div>
                     {/* Top Meta Line */}
                     <div class="flex items-center justify-between pb-2 mb-3 border-b border-gray-700/50">
@@ -324,49 +333,49 @@ export default (props: ScenariosModalProps) => {
                     </div>
 
                     {/* Route Corridor */}
-                    <div class="bg-gray-900/70 p-3 rounded-lg border border-gray-700/40 mb-3 space-y-2">
-                      <div class="flex items-center justify-between">
-                        <div>
+                    <div class="bg-gray-900/70 p-3 rounded-lg border border-gray-700/40 mb-3 space-y-2 overflow-hidden">
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="min-w-0 flex-1">
                           <div class="text-sm font-black text-white font-mono">{mission.originIcao}</div>
-                          <div class="text-[10px] text-gray-300 font-medium truncate max-w-[130px]" title={orig.mainTitle}>
+                          <div class="text-[10px] text-gray-300 font-medium truncate" title={orig.mainTitle}>
                             {orig.mainTitle}
                           </div>
-                          <div class="text-[9px] text-gray-500 truncate max-w-[130px]">{orig.subDetail}</div>
+                          <div class="text-[9px] text-gray-500 truncate" title={orig.subDetail}>{orig.subDetail}</div>
                         </div>
 
-                        <div class="flex flex-col items-center px-2">
-                          <span class="text-[10px] font-bold text-gray-400 font-mono">{mission.fixedDistanceNm} NM</span>
-                          <div class="w-16 h-0.5 bg-gradient-to-r from-emerald-500/30 via-emerald-400 to-emerald-500/30 my-1 relative">
+                        <div class="flex flex-col items-center px-2 shrink-0">
+                          <span class="text-[10px] font-bold text-gray-400 font-mono whitespace-nowrap">{mission.fixedDistanceNm} NM</span>
+                          <div class="w-14 h-0.5 bg-gradient-to-r from-emerald-500/30 via-emerald-400 to-emerald-500/30 my-1 relative">
                             <span class="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[10px]">✈️</span>
                           </div>
-                          <span class="text-[9px] text-emerald-400 font-mono font-bold">{mission.initialBearingFormatted}</span>
+                          <span class="text-[9px] text-emerald-400 font-mono font-bold whitespace-nowrap">{mission.initialBearingFormatted}</span>
                         </div>
 
-                        <div class="text-right">
+                        <div class="text-right min-w-0 flex-1">
                           <div class="text-sm font-black text-white font-mono">{mission.destinationIcao}</div>
-                          <div class="text-[10px] text-gray-300 font-medium truncate max-w-[130px]" title={dest.mainTitle}>
+                          <div class="text-[10px] text-gray-300 font-medium truncate" title={dest.mainTitle}>
                             {dest.mainTitle}
                           </div>
-                          <div class="text-[9px] text-gray-500 truncate max-w-[130px]">{dest.subDetail}</div>
+                          <div class="text-[9px] text-gray-500 truncate" title={dest.subDetail}>{dest.subDetail}</div>
                         </div>
                       </div>
                     </div>
 
                     {/* Aircraft & Manifest Details */}
                     <div class="grid grid-cols-2 gap-2 text-xs mb-3">
-                      <div class="bg-gray-900/50 p-2 rounded border border-gray-700/30">
+                      <div class="bg-gray-900/50 p-2 rounded border border-gray-700/30 min-w-0">
                         <div class="text-[9px] text-gray-400 uppercase font-semibold">Assigned Aircraft</div>
-                        <div class="font-bold text-gray-200 truncate flex items-center gap-1 mt-0.5" title={mission.aircraftModel}>
-                          <span>{getSilhouetteIcon(mission.silhouette)}</span>
+                        <div class="font-bold text-gray-200 truncate flex items-center gap-1 mt-0.5 min-w-0" title={mission.aircraftModel}>
+                          <span class="shrink-0">{getSilhouetteIcon(mission.silhouette)}</span>
                           <span class="truncate">{mission.aircraftModel}</span>
                         </div>
                       </div>
 
-                      <div class="bg-gray-900/50 p-2 rounded border border-gray-700/30">
+                      <div class="bg-gray-900/50 p-2 rounded border border-gray-700/30 min-w-0">
                         <div class="text-[9px] text-gray-400 uppercase font-semibold">Manifest Payload</div>
-                        <div class="font-bold text-amber-400 flex items-center gap-1 mt-0.5">
-                          <span>{isPax ? "👥" : "📦"}</span>
-                          <span>
+                        <div class="font-bold text-amber-400 flex items-center gap-1 mt-0.5 min-w-0">
+                          <span class="shrink-0">{isPax ? "👥" : "📦"}</span>
+                          <span class="truncate">
                             {isPax
                               ? `${mission.payload.amount} Passengers`
                               : `${mission.payload.amount.toLocaleString()} kg Cargo`}
@@ -425,11 +434,11 @@ export default (props: ScenariosModalProps) => {
                   </div>
 
                   {/* Accept & Dispatch Action */}
-                  <div class="mt-4 pt-3 border-t border-gray-700/40">
+                  <div class="mt-auto pt-3 border-t border-gray-700/40 shrink-0 w-full">
                     <button
                       onClick={() => handleLaunchMission(mission)}
                       disabled={loadingMissionId() !== null || hasActiveMission()}
-                      class={`w-full py-2 px-4 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${
+                      class={`w-full py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${
                         hasActiveMission()
                           ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                           : "bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-emerald-900/50 active:scale-[0.98]"

@@ -68,14 +68,13 @@ export class AircraftSetupStore {
 
     let count = 0;
     for (const [key, value] of Object.entries(this.originalDefinitions)) {
+      const strictVal = typeof value === "number" ? Number(value) : value;
       if (key in ac.definition) {
-        // Enforce strict numeric type if original was number
-        if (typeof value === "number") {
-          ac.definition[key] = Number(value);
-        } else {
-          ac.definition[key] = value;
-        }
+        ac.definition[key] = strictVal;
         count++;
+      }
+      if (key in ac) {
+        ac[key] = strictVal;
       }
     }
 
@@ -97,14 +96,16 @@ export class AircraftSetupStore {
       if (!liveEngine || !defaultEngine) continue;
 
       for (const [key, value] of Object.entries(defaultEngine)) {
+        const strictVal = typeof value === "number" ? Number(value) : value;
         if (key in liveEngine) {
-          // Enforce strict numeric type if original was number
-          if (typeof value === "number") {
-            liveEngine[key] = Number(value);
-          } else {
-            liveEngine[key] = value;
-          }
+          liveEngine[key] = strictVal;
           count++;
+        }
+        if (liveEngine.definition && key in liveEngine.definition) {
+          liveEngine.definition[key] = strictVal;
+        }
+        if (ac.definition?.engines?.[i] && key in ac.definition.engines[i]) {
+          ac.definition.engines[i][key] = strictVal;
         }
       }
     }

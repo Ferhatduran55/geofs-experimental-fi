@@ -84,7 +84,27 @@ export default async () => {
                 name={propName}
                 type={syncType}
                 comment={hasComment}
-                resource={currentEngine}
+                resource={`geofs.aircraft.instance.engines.${i}`}
+                onChange={(val: number) => {
+                  try {
+                    const ac = (unsafeWindow as any).geofs?.aircraft?.instance;
+                    if (!ac) return;
+                    // 1. Live engine instance
+                    if (ac.engines && ac.engines[i]) {
+                      ac.engines[i][propName] = val;
+                      if (ac.engines[i].definition) {
+                        ac.engines[i].definition[propName] = val;
+                      }
+                    }
+                    // 2. Aircraft definition engines
+                    if (ac.definition?.engines && ac.definition.engines[i]) {
+                      ac.definition.engines[i][propName] = val;
+                    }
+                    log.debug(`Engine ${i} ${propName} synced to ${val}`);
+                  } catch (err) {
+                    log.error(`Failed to sync engine ${i} ${propName}:`, err);
+                  }
+                }}
                 ref={(el: InputRef) => {
                   if (reset && el) {
                     currentEngineRefs.set(propName, el);

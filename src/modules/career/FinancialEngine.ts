@@ -7,28 +7,28 @@ export interface TransportPayload {
 }
 
 export interface FlightFinancials {
-  // --- Fixed Contract Data (Müşteri ile Kilitlenen Değerler) ---
-  fixedDistanceNm: number;          // Kuş uçuşu kalkış-varış mesafesi (NM)
-  baseHandlingFee: number;          // Sabit operasyon/hizmet bedeli ($)
-  ratePerUnitNm: number;            // Sözleşme anındaki birim fiyat ($/pax/NM veya $/kg/NM)
-  grossContractRevenue: number;     // Müşterinin ödeyeceği toplam brüt bedel ($)
+  // --- Fixed Contract Data (Locked with Customer) ---
+  fixedDistanceNm: number;          // Great circle departure-arrival distance (NM)
+  baseHandlingFee: number;          // Fixed operational/handling fee ($)
+  ratePerUnitNm: number;            // Rate per unit distance ($/pax/NM or $/kg/NM)
+  grossContractRevenue: number;     // Total gross amount paid by customer ($)
 
-  // --- Flight Performance & Comfort (Pilot Performansı) ---
-  smoothnessBonus: number;          // Yumuşak iniş ve sakin uçuş bonusu (+$)
-  timingBonus: number;              // Zamanında varış bonusu/kesintisi (+$ / -$)
-  landingPenalty: number;           // Sert iniş / aşırı G cezası (-$)
-  totalBonusPenalty: number;        // Net performans farkı ($)
+  // --- Flight Performance & Comfort (Pilot Performance) ---
+  smoothnessBonus: number;          // Smooth landing and stable flight bonus (+$)
+  timingBonus: number;              // On-time arrival bonus/deduction (+$ / -$)
+  landingPenalty: number;           // Hard landing / excess G penalty (-$)
+  totalBonusPenalty: number;        // Net performance difference ($)
 
-  // --- Operational Costs (Şirkete / Hesaba Kalan Maliyetler) ---
-  burnedFuelGal: number;            // Uçuş boyunca harcanan toplam yakıt (gal)
-  fuelPricePerGal: number;          // İniş anındaki galon yakıt fiyatı ($/gal)
-  fuelCost: number;                 // Yakıt gideri (-$)
-  landingFee: number;               // Havalimanı iniş/taksi harcı (İleride genişletilebilir) (-$)
-  maintenanceFee: number;           // Uçak yıpranma & bakım payı (İleride genişletilebilir) (-$)
+  // --- Operational Costs (Expenses Incurred) ---
+  burnedFuelGal: number;            // Total fuel consumed during flight (gal)
+  fuelPricePerGal: number;          // Fuel price per gallon at landing ($/gal)
+  fuelCost: number;                 // Total fuel expense (-$)
+  landingFee: number;               // Airport landing/taxi fee (-$)
+  maintenanceFee: number;           // Aircraft wear & maintenance share (-$)
 
-  // --- Final Financial Result (Nihai Net Bilanço) ---
-  totalExpenses: number;            // Toplam operasyonel gider ($)
-  netIncome: number;                // Pilot/Şirket hesabına geçen NET KÂR ($)
+  // --- Final Financial Result (Net P&L) ---
+  totalExpenses: number;            // Total operational expenses ($)
+  netIncome: number;                // Final NET PROFIT earned ($)
   rating: "S" | "A" | "B" | "C" | "D";
 }
 
@@ -116,7 +116,7 @@ export class FinancialEngine {
 
     const totalBonusPenalty = smoothnessBonus + timingBonus - landingPenalty;
 
-    // 2. Operational Costs (Şirketin/Pilotun Üstlendiği Gerçek Giderler)
+    // 2. Operational Costs (Real expenses incurred)
     const fuelCost = Math.round(burnedFuelGal * currentFuelRatePerGal);
     const landingFee = additionalFees?.landingFee ?? 0;
     const maintenanceFee = additionalFees?.maintenanceFee ?? 0;

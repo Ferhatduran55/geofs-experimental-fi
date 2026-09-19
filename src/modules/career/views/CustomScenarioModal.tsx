@@ -66,26 +66,63 @@ export default (props: CustomScenarioModalProps) => {
       else setSelectedDestIcao(runways[0].icao);
     }
 
-    // 3. Load GeoFS Aircraft
-    const acs: { id: string; name: string }[] = [];
+    // 3. Load GeoFS Aircraft (Deduplicated & Numerically Sorted)
+    const acMap = new Map<string, string>();
     if (geofs?.aircraftList && typeof geofs.aircraftList === "object") {
       for (const [id, ac] of Object.entries(geofs.aircraftList)) {
-        acs.push({
-          id,
-          name: (ac as any)?.name || `Aircraft #${id}`,
-        });
+        if (!id) continue;
+        const name = (ac as any)?.name || (typeof ac === "string" ? ac : `Aircraft #${id}`);
+        if (name && String(name).trim()) {
+          acMap.set(String(id), String(name).trim());
+        }
       }
     }
+
+    const curId = String(geofs?.aircraft?.instance?.id || "1");
+    const curName = geofs?.aircraft?.instance?.definition?.name;
+    if (curName && !acMap.has(curId)) {
+      acMap.set(curId, String(curName).trim());
+    }
+
+    const acs: { id: string; name: string }[] = Array.from(acMap.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => {
+        const numA = Number(a.id);
+        const numB = Number(b.id);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return numA - numB;
+        }
+        return a.id.localeCompare(b.id);
+      });
+
     if (acs.length === 0) {
-      const curId = String(geofs?.aircraft?.instance?.id || "1");
-      const curName = geofs?.aircraft?.instance?.definition?.name || "Standard Aircraft";
-      acs.push({ id: curId, name: curName });
+      acs.push({ id: curId, name: curName || "Standard Aircraft" });
     }
     setAircraftList(acs);
-    const activeAircraftId = String(geofs?.aircraft?.instance?.id || acs[0]?.id || "1");
+
+    const activeAircraftId = acMap.has(curId) ? curId : (acs[0]?.id || "1");
     setSelectedAircraftId(activeAircraftId);
+
+    const initialPreset = getAircraftTransportPreset(activeAircraftId);
     const cap = getAircraftFuelPreset(activeAircraftId).capacityGal;
     setFuelGallons(Math.round((cap * fuelPercent()) / 100));
+
+    if (initialPreset.category === "VIP" && initialPreset.maxPassengers <= 1) {
+      setPayloadType("passenger");
+      setPayloadAmount(1);
+    } else if (initialPreset.category === "VIP") {
+      setPayloadType("passenger");
+      setPayloadAmount(Math.min(4, initialPreset.maxPassengers));
+    } else if (initialPreset.category === "Cargo") {
+      setPayloadType("cargo");
+      setPayloadAmount(Math.round(initialPreset.maxCargoKg * 0.5));
+    } else if (initialPreset.category === "Bush / GA") {
+      setPayloadType("passenger");
+      setPayloadAmount(Math.min(2, initialPreset.maxPassengers));
+    } else {
+      setPayloadType("passenger");
+      setPayloadAmount(Math.round(initialPreset.maxPassengers * 0.75));
+    }
   };
 
   onMount(() => {
@@ -186,10 +223,10 @@ export default (props: CustomScenarioModalProps) => {
       const nearest = findNearestAirport(loc[0], loc[1]);
       if (nearest?.icao) {
         setSelectedOriginIcao(nearest.icao);
-        Notify.infoNow(`Kalkış meydanı ayarlandı: ${nearest.icao} (${nearest.name || "Runway"})`);
+        Notify.infoNow(`Departure runway set: ${nearest.icao} (${nearest.name || "Runway"})`);
       }
     } else {
-      Notify.warningNow("Uçak konumu hazır değil.");
+      Notify.warningNow("Aircraft position is not ready.");
     }
   };
 
@@ -359,7 +396,27 @@ export default (props: CustomScenarioModalProps) => {
   };
 
   return (
-    <div class="fixed inset-0 z-[999999] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn font-sans select-none text-gray-100">
+    <div
+      class="fixed inset-0 z-[999999] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn font-sans select-none text-gray-100"
+      onKeyDown={(e) => {
+        const target = e.target as HTMLElement;
+        if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) {
+          e.stopPropagation();
+        }
+      }}
+      onKeyUp={(e) => {
+        const target = e.target as HTMLElement;
+        if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) {
+          e.stopPropagation();
+        }
+      }}
+      onKeyPress={(e) => {
+        const target = e.target as HTMLElement;
+        if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) {
+          e.stopPropagation();
+        }
+      }}
+    >
       <div class="relative w-full max-w-6xl h-[90vh] bg-gray-900 border border-gray-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         
         {/* Header Bar */}
@@ -402,6 +459,9 @@ export default (props: CustomScenarioModalProps) => {
                 type="text"
                 value={scenarioName()}
                 onInput={(e) => setScenarioName(e.currentTarget.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+                onKeyUp={(e) => e.stopPropagation()}
+                onKeyPress={(e) => e.stopPropagation()}
                 placeholder="e.g. Executive VIP Shuttle, Cargo Haul..."
                 class="w-full px-3 py-2 text-sm bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
               />
@@ -416,15 +476,34 @@ export default (props: CustomScenarioModalProps) => {
                   const newId = e.currentTarget.value;
                   setSelectedAircraftId(newId);
                   const preset = getAircraftTransportPreset(newId);
-                  const maxVal = payloadType() === "passenger" ? (preset.maxPassengers || 1) : (preset.maxCargoKg || 100);
-                  if (payloadAmount() > maxVal) {
-                    setPayloadAmount(maxVal);
+                  const fuelPreset = getAircraftFuelPreset(newId);
+
+                  // Auto-update fuel gallons based on capacity
+                  const cap = fuelPreset.capacityGal;
+                  setFuelGallons(Math.round((cap * fuelPercent()) / 100));
+
+                  // Auto-update realistic payload
+                  if (preset.category === "VIP" && preset.maxPassengers <= 1) {
+                    setPayloadType("passenger");
+                    setPayloadAmount(1);
+                  } else if (preset.category === "VIP") {
+                    setPayloadType("passenger");
+                    setPayloadAmount(Math.min(4, preset.maxPassengers));
+                  } else if (preset.category === "Cargo") {
+                    setPayloadType("cargo");
+                    setPayloadAmount(Math.round(preset.maxCargoKg * 0.5));
+                  } else if (preset.category === "Bush / GA") {
+                    setPayloadType("passenger");
+                    setPayloadAmount(Math.min(2, preset.maxPassengers));
+                  } else {
+                    setPayloadType("passenger");
+                    setPayloadAmount(Math.round(preset.maxPassengers * 0.75));
                   }
                 }}
                 class="w-full px-3 py-2 text-xs bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-indigo-500 font-medium"
               >
                 <For each={aircraftList()}>
-                  {(ac) => <option value={ac.id}>{ac.name}</option>}
+                  {(ac) => <option value={ac.id}>[{ac.id}] {ac.name}</option>}
                 </For>
               </select>
 
@@ -445,15 +524,15 @@ export default (props: CustomScenarioModalProps) => {
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-1.5">
                     <span class="text-sm">🛫</span>
-                    <label class="text-xs font-bold text-emerald-400">Kalkış Meydanı (Departure)</label>
+                    <label class="text-xs font-bold text-emerald-400">Departure Airfield</label>
                   </div>
                   <button
                     type="button"
                     onClick={handleUseNearestOrigin}
                     class="px-2 py-0.5 text-[10px] bg-emerald-900/40 hover:bg-emerald-800/60 text-emerald-300 border border-emerald-700/50 rounded transition-colors"
-                    title="Uçağın şu an bulunduğu en yakın piste ayarla"
+                    title="Set to nearest runway from aircraft current position"
                   >
-                    📍 Konumumu Kullan
+                    📍 Use My Location
                   </button>
                 </div>
 
@@ -477,7 +556,7 @@ export default (props: CustomScenarioModalProps) => {
                         <span>🧭 {getOriginAirport().runwayHeading}</span>
                       </Show>
                       <Show when={getOriginAirport().lengthFeet}>
-                        <span>📏 {getOriginAirport().lengthFeet?.toLocaleString()} ft Pist</span>
+                        <span>📏 {getOriginAirport().lengthFeet?.toLocaleString()} ft Runway</span>
                       </Show>
                     </div>
                   </div>
@@ -487,9 +566,12 @@ export default (props: CustomScenarioModalProps) => {
                 <div class="relative">
                   <input
                     type="text"
-                    placeholder="Meydan kodu (ICAO), isim veya şehir ara..."
+                    placeholder="Search airfield ICAO, name, or city..."
                     value={originSearchTerm()}
                     onInput={(e) => setOriginSearchTerm(e.currentTarget.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    onKeyUp={(e) => e.stopPropagation()}
+                    onKeyPress={(e) => e.stopPropagation()}
                     class="w-full px-2.5 py-1.5 pl-7 text-xs bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
                   />
                   <span class="absolute left-2 top-2 text-[10px] text-gray-500">🔍</span>
@@ -516,10 +598,10 @@ export default (props: CustomScenarioModalProps) => {
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-1.5">
                     <span class="text-sm">🛬</span>
-                    <label class="text-xs font-bold text-cyan-400">Varış Meydanı (Destination)</label>
+                    <label class="text-xs font-bold text-cyan-400">Destination Airfield</label>
                   </div>
                   <span class="text-[10px] text-cyan-300 font-mono font-bold">
-                    {calculatedDistance()} NM Rota
+                    {calculatedDistance()} NM Route
                   </span>
                 </div>
 
@@ -542,7 +624,7 @@ export default (props: CustomScenarioModalProps) => {
                       <span>🧭 {calculatedBearingFormatted()}</span>
                       <span>⛰️ {getDestAirport().elevationFt} ft</span>
                       <Show when={getDestAirport().lengthFeet}>
-                        <span>📏 {getDestAirport().lengthFeet?.toLocaleString()} ft Pist</span>
+                        <span>📏 {getDestAirport().lengthFeet?.toLocaleString()} ft Runway</span>
                       </Show>
                     </div>
                   </div>
@@ -553,9 +635,12 @@ export default (props: CustomScenarioModalProps) => {
                   <div class="relative">
                     <input
                       type="text"
-                      placeholder="Varış ICAO, meydan adı veya şehir ara..."
+                      placeholder="Search destination ICAO, name, or city..."
                       value={destSearchTerm()}
                       onInput={(e) => setDestSearchTerm(e.currentTarget.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      onKeyUp={(e) => e.stopPropagation()}
+                      onKeyPress={(e) => e.stopPropagation()}
                       class="w-full px-2.5 py-1.5 pl-7 text-xs bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
                     />
                     <span class="absolute left-2 top-2 text-[10px] text-gray-500">🔍</span>
@@ -570,7 +655,7 @@ export default (props: CustomScenarioModalProps) => {
                         destDistFilter() === "all" ? "bg-cyan-600 text-white font-bold" : "bg-gray-800 text-gray-400 hover:text-white"
                       }`}
                     >
-                      Tümü
+                      All
                     </button>
                     <button
                       type="button"
@@ -605,9 +690,9 @@ export default (props: CustomScenarioModalProps) => {
                       class={`px-2 py-0.5 rounded transition-colors whitespace-nowrap ${
                         destDistFilter() === "inRange" ? "bg-cyan-600 text-white font-bold" : "bg-gray-800 text-cyan-400 border border-cyan-800/40 hover:text-white"
                       }`}
-                      title={`Uçağın azami menzili (${selectedPreset().maxRangeNm} NM) içindeki meydanlar`}
+                      title={`Airfields within aircraft maximum range (${selectedPreset().maxRangeNm} NM)`}
                     >
-                      ✓ Menzil İçi
+                      ✓ In Range
                     </button>
                   </div>
                 </div>
@@ -635,16 +720,16 @@ export default (props: CustomScenarioModalProps) => {
                 <div class="flex items-center gap-2">
                   <span class="text-base">🗺️</span>
                   <div>
-                    <span class="text-xs font-bold text-white block">Uçuş Rotası ve Performans Analizi</span>
+                    <span class="text-xs font-bold text-white block">Flight Route & Performance Analysis</span>
                     <span class="text-[10px] text-gray-400">
                       {getOriginAirport().icao} ➔ {getDestAirport().icao}
                     </span>
                   </div>
                 </div>
                 <div class="text-right">
-                  <span class="text-xs text-gray-400 block font-mono">Tahmini Süre</span>
+                  <span class="text-xs text-gray-400 block font-mono">Estimated Duration</span>
                   <span class="text-xs font-bold text-indigo-300 font-mono">
-                    ~{Math.max(1, Math.round((calculatedDistance() / Math.max(50, selectedPreset().cruiseSpeedKts)) * 60))} dk (@ {selectedPreset().cruiseSpeedKts} kts)
+                    ~{Math.max(1, Math.round((calculatedDistance() / Math.max(50, selectedPreset().cruiseSpeedKts)) * 60))} min (@ {selectedPreset().cruiseSpeedKts} kts)
                   </span>
                 </div>
               </div>
@@ -652,19 +737,19 @@ export default (props: CustomScenarioModalProps) => {
               {/* Grid: Route Distance vs Aircraft Max Range */}
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center font-mono">
                 <div class="p-2 bg-gray-900/70 rounded-lg border border-gray-700/50">
-                  <span class="text-[10px] text-gray-400 block">Rota Uçuş Mesafesi</span>
+                  <span class="text-[10px] text-gray-400 block">Route Distance</span>
                   <span class="text-sm font-black text-emerald-400">{calculatedDistance()} NM</span>
                 </div>
                 <div class="p-2 bg-gray-900/70 rounded-lg border border-gray-700/50">
-                  <span class="text-[10px] text-gray-400 block">Uçağın Azami Menzili</span>
+                  <span class="text-[10px] text-gray-400 block">Aircraft Max Range</span>
                   <span class="text-sm font-black text-cyan-400">{selectedPreset().maxRangeNm.toLocaleString()} NM</span>
                 </div>
                 <div class="p-2 bg-gray-900/70 rounded-lg border border-gray-700/50">
-                  <span class="text-[10px] text-gray-400 block">Kalkış Başlığı</span>
+                  <span class="text-[10px] text-gray-400 block">Initial Heading</span>
                   <span class="text-sm font-bold text-amber-300">{calculatedBearingFormatted()}</span>
                 </div>
                 <div class="p-2 bg-gray-900/70 rounded-lg border border-gray-700/50">
-                  <span class="text-[10px] text-gray-400 block">Seyir Sürati</span>
+                  <span class="text-[10px] text-gray-400 block">Cruise Speed</span>
                   <span class="text-sm font-bold text-indigo-300">{selectedPreset().cruiseSpeedKts} kts</span>
                 </div>
               </div>
@@ -673,8 +758,8 @@ export default (props: CustomScenarioModalProps) => {
               <div class="space-y-1.5 pt-1">
                 <div class="flex items-center justify-between text-[11px] font-mono">
                   <span class="text-gray-300">
-                    Uçak Menzil Kullanımı: <b class={calculatedDistance() <= selectedPreset().maxRangeNm ? "text-emerald-400" : "text-rose-400"}>
-                      %{rangeUtilizationPercent()}
+                    Range Utilization: <b class={calculatedDistance() <= selectedPreset().maxRangeNm ? "text-emerald-400" : "text-rose-400"}>
+                      {rangeUtilizationPercent()}%
                     </b>
                   </span>
                   <span class="text-gray-400 text-[10px]">
@@ -698,12 +783,12 @@ export default (props: CustomScenarioModalProps) => {
                     when={calculatedDistance() <= selectedPreset().maxRangeNm}
                     fallback={
                       <span class="text-amber-300 font-bold">
-                        ⚠️ Dikkat: Rota mesafesi ({calculatedDistance()} NM), {selectedPreset().name} uçağının azami menzilini ({selectedPreset().maxRangeNm} NM) aşıyor! Uçuş için havada yakıt ikmali gerekir.
+                        ⚠️ Warning: Route distance ({calculatedDistance()} NM) exceeds {selectedPreset().name}'s maximum range ({selectedPreset().maxRangeNm} NM)! Aerial refueling will be required.
                       </span>
                     }
                   >
                     <span>
-                      ℹ️ Rota mesafesi ({calculatedDistance()} NM), {selectedPreset().name} azami menzilinin ({selectedPreset().maxRangeNm.toLocaleString()} NM) yalnızca %{rangeUtilizationPercent()}'ini kapsamaktadır.
+                      ℹ️ Route distance ({calculatedDistance()} NM) utilizes only {rangeUtilizationPercent()}% of {selectedPreset().name}'s max range ({selectedPreset().maxRangeNm.toLocaleString()} NM).
                     </span>
                   </Show>
                 </div>
@@ -796,6 +881,9 @@ export default (props: CustomScenarioModalProps) => {
                         step={1}
                         value={fuelGallons()}
                         onInput={(e) => handleFuelGallonsChange(Number(e.currentTarget.value) || 1)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        onKeyUp={(e) => e.stopPropagation()}
+                        onKeyPress={(e) => e.stopPropagation()}
                         class="w-full px-2.5 py-1.5 text-xs bg-gray-900 border border-gray-700 rounded-lg text-white font-mono font-bold focus:outline-none focus:border-indigo-500 text-right"
                       />
                       <span class="text-xs text-gray-400 font-mono">gal</span>
@@ -813,6 +901,9 @@ export default (props: CustomScenarioModalProps) => {
                   step={500}
                   value={customReward()}
                   onInput={(e) => setCustomReward(Number(e.currentTarget.value) || 1000)}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onKeyUp={(e) => e.stopPropagation()}
+                  onKeyPress={(e) => e.stopPropagation()}
                   class="w-full px-3 py-1.5 text-sm bg-gray-900 border border-gray-700 rounded-lg text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500"
                 />
               </div>

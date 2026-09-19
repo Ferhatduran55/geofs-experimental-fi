@@ -104,7 +104,7 @@ const ContainerComponent = () => {
   return (
     <>
       <ul
-        class="geofs-list geofs-toggle-panel geofs-efi-list w-[380px] bg-gray-200/80 dark:bg-black/70 backdrop-blur-md shadow-2xl overflow-y-auto font-sans text-gray-800 dark:text-gray-300 p-4 space-y-6"
+        class="geofs-list geofs-toggle-panel geofs-efi-list bg-gray-200/80 dark:bg-black/70 backdrop-blur-md shadow-2xl overflow-y-auto font-sans text-gray-800 dark:text-gray-300 p-4 space-y-6"
         data-noblur="true"
         data-onshow="{geofs.initializePreferencesPanel()}"
         data-onhide="{geofs.savePreferencesPanel()}"

@@ -1,4 +1,4 @@
-import Logger from "../../classes/Logger";
+import Logger from "../../shared/Logger";
 import type { IEventBus } from "../../core/types";
 import { calculateGreatCircleNm, findNearestAirport } from "./AirportDatabase";
 
@@ -89,13 +89,21 @@ export class FlightStateMachine {
 
     switch (this.state) {
       case FlightState.PARKED:
-        if (kias > 5) {
+        if (!groundContact && altitudeFt > 80 && kias > 35) {
+          log.info("Airborne spawn/reconnect detected in PARKED state. Initializing in-flight tracking.");
+          this.handleConfirmedTakeoff(lla);
+          this.transitionTo(FlightState.IN_FLIGHT);
+        } else if (kias > 5) {
           this.transitionTo(FlightState.TAXI);
         }
         break;
 
       case FlightState.TAXI:
-        if (kias > 35 && groundContact) {
+        if (!groundContact && altitudeFt > 80 && kias > 35) {
+          log.info("Airborne state detected in TAXI state. Initializing in-flight tracking.");
+          this.handleConfirmedTakeoff(lla);
+          this.transitionTo(FlightState.IN_FLIGHT);
+        } else if (kias > 35 && groundContact) {
           this.transitionTo(FlightState.TAKEOFF_ROLL);
         } else if (kias <= 1) {
           this.transitionTo(FlightState.PARKED);
@@ -191,8 +199,13 @@ export class FlightStateMachine {
     const originAp = findNearestAirport(lla[0], lla[1]);
     const now = Date.now();
 
+    // If an active career mission is in progress, anchor departure to mission origin
+    const careerModule = (typeof unsafeWindow !== "undefined" ? (unsafeWindow as any) : (globalThis as any))?.__efiCareerModule;
+    const activeOrigin = careerModule?.currentMission?.originIcao;
+    const depIcao = activeOrigin && activeOrigin !== "ORIG" ? activeOrigin : originAp.icao;
+
     this.tracking = {
-      departureIcao: originAp.icao,
+      departureIcao: depIcao,
       departureCoords: [lla[0], lla[1], lla[2]],
       takeoffTimestamp: now,
       maxGForce: 1.0,
@@ -201,9 +214,9 @@ export class FlightStateMachine {
       flownDistanceNm: 0,
     };
 
-    log.info(`Official Takeoff Confirmed from ${originAp.icao} (${originAp.name})`);
+    log.info(`Official Takeoff Confirmed from ${depIcao} (${originAp.name || depIcao})`);
     this.eventBus.emit("flight:takeoff", {
-      airportIcao: originAp.icao,
+      airportIcao: depIcao,
       coordinates: [lla[0], lla[1], lla[2]],
       timestamp: now,
     });
@@ -238,6 +251,8 @@ export class FlightStateMachine {
     this.eventBus.emit("flight:landed", {
       airportIcao: arrivalAp.icao,
       coordinates: [lla[0], lla[1], lla[2]],
+      departureIcao: this.tracking.departureIcao,
+      departureCoords: this.tracking.departureCoords,
       timestamp: now,
       flightDurationMs,
       flownDistanceNm,

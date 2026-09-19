@@ -80,7 +80,7 @@ export function formatAirportDisplay(ap: AirportInfo): { mainTitle: string; subD
  * Fetch all available runways directly and comprehensively from GeoFS engine
  */
 export function getGeoFSRunways(): AirportInfo[] {
-  const geofs = (unsafeWindow as any).geofs;
+  const geofs = (typeof unsafeWindow !== "undefined" ? (unsafeWindow as any) : (globalThis as any))?.geofs;
   if (!geofs) return [];
 
   const results: AirportInfo[] = [];
@@ -200,10 +200,118 @@ export function getGeoFSRunways(): AirportInfo[] {
 }
 
 /**
+ * Fast spatial search for GeoFS runways around a specific coordinate.
+ * Instead of traversing the entire planet, this queries only the 3-9 grid cells
+ * in geofs.majorRunwayGrid[lonIndex][latIndex] within radiusNm, plus geofs.runways.nearRunways.
+ */
+export function getNearGeoFSRunways(centerLat: number, centerLon: number, radiusNm: number): AirportInfo[] {
+  const geofs = (typeof unsafeWindow !== "undefined" ? (unsafeWindow as any) : (globalThis as any))?.geofs;
+  if (!geofs) return [];
+
+  const results: AirportInfo[] = [];
+  const seenIcaos = new Set<string>();
+
+  const processRunwayObj = (rw: any) => {
+    if (!rw) return;
+    const loc = rw.threshold || rw.location || rw.lla || (Array.isArray(rw) ? rw : null);
+    if (!loc || !Array.isArray(loc) || loc.length < 2) return;
+
+    const lat = Number(loc[0]);
+    const lon = Number(loc[1]);
+    if (isNaN(lat) || isNaN(lon) || (lat === 0 && lon === 0)) return;
+
+    const icao = String(rw.icao || rw.id || rw.name || "").toUpperCase().trim();
+    const key = icao || `${lat.toFixed(3)},${lon.toFixed(3)}`;
+    if (seenIcaos.has(key)) return;
+    seenIcaos.add(key);
+
+    const elevationFt = Number(rw.elevation || (loc.length > 2 ? loc[2] : 0) || 0) * 3.28084;
+    const name = rw.name && rw.name !== icao ? String(rw.name).trim() : rw.title;
+    const city = rw.city || rw.locality || undefined;
+    const country = rw.country || rw.c || undefined;
+    const heading = typeof rw.heading === "number" ? Math.round(rw.heading) : undefined;
+    const runwayHeading = heading !== undefined ? `RWY ${heading.toString().padStart(3, "0")}°` : undefined;
+    const lengthFeet = rw.lengthFeet !== undefined ? Math.round(Number(rw.lengthFeet)) : (rw.length ? Math.round(Number(rw.length) * 3.28084) : undefined);
+    const widthFeet = rw.widthFeet !== undefined ? Math.round(Number(rw.widthFeet)) : (rw.width ? Math.round(Number(rw.width) * 3.28084) : undefined);
+
+    results.push({
+      icao: icao || "RWY",
+      name,
+      lat,
+      lon,
+      elevationFt: Math.round(elevationFt),
+      heading,
+      runwayHeading,
+      lengthFeet,
+      widthFeet,
+      country,
+      city,
+    });
+  };
+
+  // 1. Check nearRunways (already local to player)
+  if (geofs.runways?.nearRunways) {
+    const nr = geofs.runways.nearRunways;
+    if (typeof nr === "object") {
+      for (const k of Object.keys(nr)) processRunwayObj(nr[k]);
+    }
+  }
+
+  // 2. Fast spatial 1x1 degree grid lookup around center coordinates
+  // 1 degree latitude is ~60 NM.
+  if (geofs.majorRunwayGrid && typeof geofs.majorRunwayGrid === "object") {
+    const grid = geofs.majorRunwayGrid;
+    const degRadius = Math.ceil(radiusNm / 60) + 1;
+    const latInt = Math.floor(centerLat);
+    const lonInt = Math.floor(centerLon);
+
+    for (let dLon = -degRadius; dLon <= degRadius; dLon++) {
+      const lonKey = lonInt + dLon;
+      const latCol = grid[lonKey];
+      if (!latCol || typeof latCol !== "object") continue;
+
+      for (let dLat = -degRadius; dLat <= degRadius; dLat++) {
+        const latKey = latInt + dLat;
+        const cellRunways = latCol[latKey];
+        if (!Array.isArray(cellRunways)) continue;
+
+        for (let i = 0; i < cellRunways.length; i++) {
+          const r = cellRunways[i];
+          if (Array.isArray(r) && r.length >= 6) {
+            processRunwayObj({
+              icao: r[0],
+              location: [r[4], r[5], 0],
+              heading: r[3],
+              lengthFeet: r[1],
+              widthFeet: r[2],
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Helper to validate genuine ICAO code (e.g. LTFM, KJFK, not '35L', '05', 'RWY')
+ */
+export function isValidIcaoCode(code?: string): boolean {
+  if (!code) return false;
+  const clean = String(code).trim().toUpperCase();
+  if (clean.length < 3 || clean.length > 5) return false;
+  if (/^\d{1,2}[LRC]?$/.test(clean)) return false;
+  if (clean.startsWith("RWY") || clean.startsWith("RUNWAY")) return false;
+  if (!/[A-Z]/.test(clean)) return false;
+  return true;
+}
+
+/**
  * Find the nearest airport/runway using GeoFS's native engine
  */
 export function findNearestAirport(lat: number, lon: number): AirportInfo {
-  const geofs = (unsafeWindow as any).geofs;
+  const geofs = (typeof unsafeWindow !== "undefined" ? (unsafeWindow as any) : (globalThis as any))?.geofs;
 
   // 1. Try native geofs.runways.getNearestRunway
   if (typeof geofs?.runways?.getNearestRunway === "function") {
@@ -211,8 +319,29 @@ export function findNearestAirport(lat: number, lon: number): AirportInfo {
       const nativeRw = geofs.runways.getNearestRunway([lat, lon, 0]);
       if (nativeRw) {
         const loc = nativeRw.threshold || nativeRw.location || nativeRw.lla || [lat, lon, 0];
-        const icao = String(nativeRw.icao || nativeRw.id || nativeRw.name || "ORIG").toUpperCase().trim();
+        let icao = [nativeRw.icao, nativeRw.airport, nativeRw.airportIcao, nativeRw.id, nativeRw.name]
+          .map((c) => (c ? String(c).trim().toUpperCase() : ""))
+          .find((c) => isValidIcaoCode(c));
+
         const heading = typeof nativeRw.heading === "number" ? Math.round(nativeRw.heading) : undefined;
+        const runwayHeading = heading !== undefined ? `RWY ${heading.toString().padStart(3, "0")}°` : (nativeRw.name || undefined);
+
+        // If nativeRw didn't give a valid ICAO code, search allRunways within 5 NM for true airport ICAO
+        if (!icao) {
+          const allRunways = getGeoFSRunways();
+          let bestDist = Infinity;
+          let bestIcao = "";
+          for (const rw of allRunways) {
+            if (isValidIcaoCode(rw.icao)) {
+              const d = calculateDistanceNm(loc[0], loc[1], rw.lat, rw.lon);
+              if (d < bestDist && d <= 5.0) {
+                bestDist = d;
+                bestIcao = rw.icao;
+              }
+            }
+          }
+          icao = bestIcao || "ORIG";
+        }
 
         return {
           icao: icao || "ORIG",
@@ -221,7 +350,7 @@ export function findNearestAirport(lat: number, lon: number): AirportInfo {
           lon: loc[1],
           elevationFt: Math.round((nativeRw.elevation || loc[2] || 0) * 3.28084),
           heading,
-          runwayHeading: heading !== undefined ? `RWY ${heading.toString().padStart(3, "0")}°` : undefined,
+          runwayHeading,
           lengthFeet: nativeRw.lengthFeet !== undefined ? Math.round(Number(nativeRw.lengthFeet)) : (nativeRw.length ? Math.round(Number(nativeRw.length) * 3.28084) : undefined),
           widthFeet: nativeRw.widthFeet !== undefined ? Math.round(Number(nativeRw.widthFeet)) : (nativeRw.width ? Math.round(Number(nativeRw.width) * 3.28084) : undefined),
           city: nativeRw.city || nativeRw.locality || undefined,

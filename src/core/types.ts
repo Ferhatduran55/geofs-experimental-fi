@@ -45,6 +45,8 @@ export interface CoreEvents {
   "flight:landed": {
     airportIcao: string;
     coordinates: [number, number, number];
+    departureIcao?: string;
+    departureCoords?: [number, number, number];
     timestamp: number;
     flightDurationMs: number;
     flownDistanceNm: number;
@@ -88,7 +90,7 @@ export interface SettingsDefinition {
 }
 
 /**
- * Standard Module Interface (Anakart / Eklenti Modülü Kontratı)
+ * Standard Module Interface (Core / Addon Module Contract)
  */
 export interface IModule {
   readonly id: string;
@@ -96,6 +98,7 @@ export interface IModule {
   readonly version: string;
   readonly description?: string;
   readonly defaultEnabled?: boolean;
+  readonly requires?: string[];
 
   /**
    * Called once during application boot to configure the module.
@@ -168,6 +171,8 @@ export interface IModuleRunner {
   enable(id: string): Promise<boolean>;
   disable(id: string): Promise<boolean>;
   toggle(id: string): Promise<boolean>;
+  getDependents(moduleId: string): IModule[];
+  checkRequirementsMet(moduleId: string): boolean;
 }
 
 /**

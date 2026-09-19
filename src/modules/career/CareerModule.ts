@@ -54,6 +54,8 @@ export class CareerModule implements IModule {
   private destArrivalTimerMs: number = 0;
   private isCrashedHandled: boolean = false;
   private _isEnabled: boolean = false;
+  private lastLla: [number, number] | null = null;
+  private lastSaveCumulativeTime: number = 0;
 
   isEnabled(): boolean {
     return this._isEnabled;
@@ -82,9 +84,30 @@ export class CareerModule implements IModule {
         this.stateMachine.update(tick);
         this.checkDirectDestinationArrival(tick);
         this.checkCrashState(tick);
+
+        // Accumulate distance during flight for active transport mission
+        if (this.currentMission && !tick.groundContact && tick.kias > 35) {
+          const curLat = tick.lla[0];
+          const curLon = tick.lla[1];
+          if (this.lastLla) {
+            const deltaNm = calculateDistanceNm(this.lastLla[0], this.lastLla[1], curLat, curLon);
+            if (deltaNm > 0 && deltaNm < 5) {
+              this.currentMission.cumulativeFlownNm = (this.currentMission.cumulativeFlownNm || 0) + deltaNm;
+              const now = Date.now();
+              if (now - this.lastSaveCumulativeTime > 10000) {
+                this.lastSaveCumulativeTime = now;
+                Storage.write("career_current_mission", this.currentMission);
+              }
+            }
+          }
+          this.lastLla = [curLat, curLon];
+        } else if (tick.groundContact) {
+          this.lastLla = [tick.lla[0], tick.lla[1]];
+        }
       }),
 
       bus.on("aircraft:changed", (data) => {
+        const prevAircraftId = this.currentAircraftId;
         this.currentAircraftId = data.id;
         this.currentAircraftName = data.name;
         this.currentAircraftMassKg = data.massKg;
@@ -92,7 +115,22 @@ export class CareerModule implements IModule {
         this.isCrashedHandled = false;
         this.destArrivalTimerMs = 0;
         this.availableMissions = [];
+        this.lastLla = null;
         log.debug(`Aircraft updated in CareerModule: ${data.name}`);
+
+        // If an active contract exists and user switched away to a different aircraft:
+        if (
+          this.currentMission &&
+          prevAircraftId &&
+          String(prevAircraftId) !== String(data.id) &&
+          String(this.currentMission.aircraftId) !== String(data.id)
+        ) {
+          log.warn(`Aircraft changed to ${data.id} during active mission (${this.currentMission.aircraftId}). Auto-aborting contract.`);
+          this.currentMission = null;
+          this.saveData();
+          Storage.delete("career_current_mission");
+          Notify.warning("Active transport contract cancelled: Aircraft was changed.", "Career System");
+        }
       }),
 
       bus.on("flight:takeoff", (data) => {
@@ -212,6 +250,8 @@ export class CareerModule implements IModule {
         this.handleLanding({
           airportIcao: dest.icao,
           coordinates: tick.lla,
+          departureIcao: tracking?.departureIcao || this.currentMission.originIcao,
+          departureCoords: tracking?.departureCoords,
           timestamp: Date.now(),
           flightDurationMs: Math.max(30000, durationMs),
           flownDistanceNm: Math.max(1, flownDist),
@@ -262,7 +302,7 @@ export class CareerModule implements IModule {
       takeoffTime: Date.now() - 30000,
       landingTime: Date.now(),
       flightDurationHours: "0.1",
-      flownDistanceNm: 0,
+      flownDistanceNm: Math.round((activeMission.cumulativeFlownNm || 0) * 10) / 10,
       fixedDistanceNm: activeMission.fixedDistanceNm,
       payloadDescription: TransportEngine.getPayloadDescription(activeMission.payload),
       callsign,
@@ -271,6 +311,7 @@ export class CareerModule implements IModule {
 
     this.currentMission = null;
     this.saveData();
+    Storage.delete("career_current_mission");
 
     Modal.show({
       title: "Mission Failed: Aircraft Crashed 💥",
@@ -314,6 +355,8 @@ export class CareerModule implements IModule {
   private handleLanding(data: {
     airportIcao: string;
     coordinates: [number, number, number];
+    departureIcao?: string;
+    departureCoords?: [number, number, number];
     timestamp: number;
     flightDurationMs: number;
     flownDistanceNm: number;
@@ -324,6 +367,10 @@ export class CareerModule implements IModule {
     const rates = MarketEngine.getCurrentRates();
     const geofs = (unsafeWindow as any).geofs;
     const callsign = geofs?.userRecord?.callsign || "Pilot";
+
+    const actualFlownDistanceNm = Math.round(
+      Math.max(flownDistanceNm, this.currentMission?.cumulativeFlownNm || 0) * 10
+    ) / 10;
 
     let settlement: FlightFinancials | undefined = undefined;
     let title = "Flight Summary 🛬";
@@ -378,7 +425,7 @@ export class CareerModule implements IModule {
                 </span>
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400">
-                Flown: ${flownDistanceNm} NM | Time: ${(flightDurationMs / 60000).toFixed(1)}m | Payload: ${pDesc}
+                Flown: ${actualFlownDistanceNm} NM | Time: ${(flightDurationMs / 60000).toFixed(1)}m | Payload: ${pDesc}
               </div>
             </div>
 
@@ -448,13 +495,15 @@ export class CareerModule implements IModule {
     const logEntry: FlightLogEntry = {
       aircraftId: this.currentAircraftId,
       aircraftName: this.currentAircraftName,
-      departureIcao: findNearestAirport(data.coordinates[0], data.coordinates[1]).icao,
+      departureIcao: activeMission
+        ? activeMission.originIcao
+        : (data.departureIcao || (data.departureCoords ? findNearestAirport(data.departureCoords[0], data.departureCoords[1]).icao : "ORIG")),
       arrivalIcao: airportIcao,
       takeoffTime: Date.now() - flightDurationMs,
       landingTime: Date.now(),
       flightDurationHours: (flightDurationMs / 3600000).toFixed(2),
-      flownDistanceNm,
-      fixedDistanceNm: settlement?.fixedDistanceNm ?? flownDistanceNm,
+      flownDistanceNm: actualFlownDistanceNm,
+      fixedDistanceNm: settlement?.fixedDistanceNm ?? actualFlownDistanceNm,
       payloadDescription: activeMission ? TransportEngine.getPayloadDescription(activeMission.payload) : "Free Flight",
       financials: settlement,
       callsign,

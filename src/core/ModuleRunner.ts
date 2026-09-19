@@ -1,5 +1,6 @@
 import Logger from "../shared/Logger";
 import Storage from "../shared/Storage";
+import Notify from "../shared/Notify";
 import type { ICoreEngine, IEventBus, IModule, IModuleRunner, IUIRegistry } from "./types";
 
 const log = Logger.create("ModuleRunner");
@@ -74,11 +75,37 @@ export class ModuleRunner implements IModuleRunner {
     log.info("All modules initialized.");
   }
 
+  getDependents(moduleId: string): IModule[] {
+    return this.getAll().filter((m) => m.requires && m.requires.includes(moduleId));
+  }
+
+  checkRequirementsMet(moduleId: string): boolean {
+    const module = this.modules.get(moduleId);
+    if (!module || !module.requires || module.requires.length === 0) return true;
+    return module.requires.every((reqId) => this.isEnabled(reqId));
+  }
+
   async enable(id: string): Promise<boolean> {
     const module = this.modules.get(id);
     if (!module) {
       log.error(`Cannot enable unknown module "${id}"`);
       return false;
+    }
+
+    // 1. Check declarative dependencies: auto-enable missing requirements or warn
+    if (module.requires && module.requires.length > 0) {
+      for (const reqId of module.requires) {
+        if (!this.isEnabled(reqId)) {
+          const reqModule = this.modules.get(reqId);
+          const reqName = reqModule?.name || reqId;
+          log.info(`Module "${module.name}" requires "${reqName}". Auto-enabling prerequisite...`);
+          const reqSuccess = await this.enable(reqId);
+          if (!reqSuccess) {
+            log.error(`Cannot enable "${module.name}": required prerequisite "${reqName}" failed to activate.`);
+            return false;
+          }
+        }
+      }
     }
 
     try {
@@ -96,6 +123,20 @@ export class ModuleRunner implements IModuleRunner {
 
       this.eventBus.emit("module:enabled", { moduleId: id });
       log.info(`Enabled module: ${module.name} [${id}]`);
+
+      // 2. Cascade: Auto-restore dependent modules if their stored preference was enabled
+      const dependents = this.getDependents(id);
+      for (const dep of dependents) {
+        if (!this.isEnabled(dep.id)) {
+          const savedPref = await Storage.get(this.getStorageKey(dep.id));
+          const shouldEnable = typeof savedPref === "boolean" ? savedPref : (dep.defaultEnabled ?? true);
+          if (shouldEnable && this.checkRequirementsMet(dep.id)) {
+            log.info(`Auto-restoring dependent module "${dep.name}" as requirement "${module.name}" became active`);
+            await this.enable(dep.id);
+          }
+        }
+      }
+
       return true;
     } catch (error) {
       log.error(`Failed to enable module "${id}":`, error);
@@ -109,6 +150,16 @@ export class ModuleRunner implements IModuleRunner {
     if (!module) {
       log.error(`Cannot disable unknown module "${id}"`);
       return false;
+    }
+
+    // 1. Cascade: Force disable any active dependent modules first!
+    const dependents = this.getDependents(id);
+    for (const dep of dependents) {
+      if (this.isEnabled(dep.id)) {
+        log.warn(`Deactivating dependent module "${dep.name}" because parent "${module.name}" is being disabled.`);
+        await this.disable(dep.id);
+        Notify.warning(`"${dep.name}" was deactivated because "${module.name}" was disabled.`, "Module Dependency");
+      }
     }
 
     try {

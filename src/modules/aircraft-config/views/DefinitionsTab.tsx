@@ -70,6 +70,21 @@ export default async () => {
               type={syncType}
               comment={hasComment}
               resource="geofs.aircraft.instance.definition"
+              onChange={(val: any) => {
+                try {
+                  const ac = (unsafeWindow as any).geofs?.aircraft?.instance;
+                  if (!ac) return;
+                  if (ac.definition) {
+                    ac.definition[propName] = val;
+                  }
+                  if (propName in ac) {
+                    ac[propName] = val;
+                  }
+                  log.debug(`Definition ${propName} synced to ${val}`);
+                } catch (err) {
+                  log.error(`Failed to sync definition ${propName}:`, err);
+                }
+              }}
               ref={(el: InputRef) => {
                 if (reset && el) {
                   inputRefs.set(propName, el);

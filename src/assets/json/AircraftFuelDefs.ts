@@ -563,15 +563,147 @@ export const CATEGORY_FUEL_PRESETS: Record<string, AircraftFuelPreset> = {
 };
 
 /**
- * Resolves the category for a given aircraft ID using AircraftGroups
+ * Resolves the category for a given aircraft ID using AircraftGroups or name heuristics
  */
-export function getAircraftCategory(aircraftId: string | number): string {
+export function getAircraftCategory(aircraftId: string | number, aircraftName?: string): string {
   const idStr = String(aircraftId);
   for (const [catName, idList] of Object.entries(groups)) {
     if (Array.isArray(idList) && idList.includes(idStr)) {
       return catName;
     }
   }
+
+  // Name-based classification for community or unlisted aircraft
+  const geofs = (typeof unsafeWindow !== "undefined" ? (unsafeWindow as any) : (globalThis as any))?.geofs;
+  const name =
+    aircraftName ||
+    geofs?.aircraftList?.[idStr]?.name ||
+    (String(geofs?.aircraft?.instance?.id) === idStr ? geofs?.aircraft?.instance?.definition?.name : "");
+
+  if (name) {
+    const nameLower = name.toLowerCase();
+    if (
+      nameLower.includes("fighter") ||
+      nameLower.includes("f-1") ||
+      nameLower.includes("f-2") ||
+      nameLower.includes("f-3") ||
+      nameLower.includes("f/a-18") ||
+      nameLower.includes("f-14") ||
+      nameLower.includes("f-15") ||
+      nameLower.includes("f-16") ||
+      nameLower.includes("f-22") ||
+      nameLower.includes("f-35") ||
+      nameLower.includes("f-4") ||
+      nameLower.includes("f-5") ||
+      nameLower.includes("mirage") ||
+      nameLower.includes("rafale") ||
+      nameLower.includes("typhoon") ||
+      nameLower.includes("eurofighter") ||
+      nameLower.includes("gripen") ||
+      nameLower.includes("mig-") ||
+      nameLower.includes("su-") ||
+      nameLower.includes("sukhoi") ||
+      nameLower.includes("harrier") ||
+      nameLower.includes("tornado") ||
+      nameLower.includes("a-10")
+    ) {
+      return "fighterJet";
+    }
+    if (
+      nameLower.includes("phenom") ||
+      nameLower.includes("citation") ||
+      nameLower.includes("learjet") ||
+      nameLower.includes("gulfstream") ||
+      nameLower.includes("challenger") ||
+      nameLower.includes("global express") ||
+      nameLower.includes("falcon") ||
+      nameLower.includes("hawker") ||
+      nameLower.includes("hondajet") ||
+      nameLower.includes("pc-24") ||
+      nameLower.includes("business") ||
+      nameLower.includes("bizjet")
+    ) {
+      return "businessJet";
+    }
+    if (
+      nameLower.includes("an-124") ||
+      nameLower.includes("an-225") ||
+      nameLower.includes("mriya") ||
+      nameLower.includes("beluga") ||
+      nameLower.includes("c-5") ||
+      nameLower.includes("c-17") ||
+      (nameLower.includes("cargo") && (nameLower.includes("747") || nameLower.includes("777")))
+    ) {
+      return "heavyCargo";
+    }
+    if (nameLower.includes("747") || nameLower.includes("380")) {
+      return "wideBody4Engine";
+    }
+    if (
+      nameLower.includes("777") ||
+      nameLower.includes("787") ||
+      nameLower.includes("350") ||
+      nameLower.includes("330") ||
+      nameLower.includes("340") ||
+      nameLower.includes("dc-10") ||
+      nameLower.includes("md-11")
+    ) {
+      return "twinjetWideBody";
+    }
+    if (
+      nameLower.includes("737") ||
+      nameLower.includes("320") ||
+      nameLower.includes("321") ||
+      nameLower.includes("319") ||
+      nameLower.includes("757") ||
+      nameLower.includes("727") ||
+      nameLower.includes("717") ||
+      nameLower.includes("md-8") ||
+      nameLower.includes("c919") ||
+      nameLower.includes("airliner")
+    ) {
+      return "twinjetNarrowBody";
+    }
+    if (
+      nameLower.includes("crj") ||
+      nameLower.includes("erj") ||
+      nameLower.includes("e-jet") ||
+      nameLower.includes("e170") ||
+      nameLower.includes("e175") ||
+      nameLower.includes("e190") ||
+      nameLower.includes("e195") ||
+      nameLower.includes("a220") ||
+      nameLower.includes("superjet") ||
+      nameLower.includes("regional")
+    ) {
+      return "regionalJet";
+    }
+    if (
+      nameLower.includes("atr") ||
+      nameLower.includes("dash 8") ||
+      nameLower.includes("q400") ||
+      nameLower.includes("king air") ||
+      nameLower.includes("saab") ||
+      nameLower.includes("twin otter") ||
+      nameLower.includes("commuter") ||
+      nameLower.includes("turboprop")
+    ) {
+      return "turbopropCommuter";
+    }
+    if (
+      nameLower.includes("cessna") ||
+      nameLower.includes("cub") ||
+      nameLower.includes("piper") ||
+      nameLower.includes("bonanza") ||
+      nameLower.includes("baron") ||
+      nameLower.includes("cirrus") ||
+      nameLower.includes("extra") ||
+      nameLower.includes("prop")
+    ) {
+      return "singleEngine";
+    }
+  }
+
   return "default";
 }
 
@@ -583,18 +715,26 @@ export function getAircraftFuelPreset(
   fallbackCategory?: string,
   aircraftMassKg?: number
 ): AircraftFuelPreset {
+  const geofs = (typeof unsafeWindow !== "undefined" ? (unsafeWindow as any) : (globalThis as any))?.geofs;
   if (aircraftId !== undefined && aircraftId !== null) {
     const idStr = String(aircraftId);
+    const liveName = geofs?.aircraftList?.[idStr]?.name;
+
     if (AIRCRAFT_FUEL_PRESETS[idStr]) {
-      return { ...AIRCRAFT_FUEL_PRESETS[idStr], id: idStr };
+      return {
+        ...AIRCRAFT_FUEL_PRESETS[idStr],
+        id: idStr,
+        name: liveName || AIRCRAFT_FUEL_PRESETS[idStr].name,
+      };
     }
 
-    const detectedCategory = getAircraftCategory(idStr);
+    const detectedCategory = getAircraftCategory(idStr, liveName);
     if (detectedCategory && CATEGORY_FUEL_PRESETS[detectedCategory]) {
       return {
         ...CATEGORY_FUEL_PRESETS[detectedCategory],
         id: idStr,
         category: detectedCategory,
+        name: liveName || CATEGORY_FUEL_PRESETS[detectedCategory].name,
       };
     }
   }

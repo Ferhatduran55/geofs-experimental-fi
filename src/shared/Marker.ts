@@ -73,3 +73,4 @@ class Marker {
 }
 
 export default Marker;
+export { Marker };
